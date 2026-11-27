@@ -331,6 +331,8 @@ function buildTools() {
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#fly') && !e.target.closest('#tools')) closeFly(); });
 function setTool(k) { S.tool = k; pending = null; hover = null; cv.classList.toggle('active', k !== 'cursor'); buildTools(); redrawSoon(); }
 
+const FA = (d, v) => d.fa == null ? v : d.fa;
+let HT = 6, drag = null, dragFlag = false, lastSelShown = null;
 function drawMore(d, P, W, H, line, ext) {
   const ty = d.type, D = d.pts, p0 = P[0], p1 = P[1], p2 = P[2], color = d.color || '#f5c542';
   const tag = (txt, x, y, bg) => { cx.save(); cx.font = '11px system-ui'; const w = cx.measureText(txt).width + 8; cx.globalAlpha = .85; cx.fillStyle = bg || '#0e1116'; cx.fillRect(x, y - 13, w, 17); cx.globalAlpha = 1; cx.fillStyle = color; cx.fillText(txt, x + 4, y); cx.restore(); };
@@ -342,13 +344,13 @@ function drawMore(d, P, W, H, line, ext) {
   else if (ty === 'hray') { line({ x: p0.x, y: p0.y }, { x: W, y: p0.y }); cx.fillText(fmt(D[0].p), p0.x + 4, p0.y - 4); }
   else if (ty === 'cross') { line({ x: 0, y: p0.y }, { x: W, y: p0.y }); line({ x: p0.x, y: 0 }, { x: p0.x, y: H }); }
   else if (ty === 'arrow') { line(p0, p1); const a = Math.atan2(p1.y - p0.y, p1.x - p0.x); poly([{ x: p1.x - 12 * Math.cos(a - .4), y: p1.y - 12 * Math.sin(a - .4) }, p1, { x: p1.x - 12 * Math.cos(a + .4), y: p1.y - 12 * Math.sin(a + .4) }], 0); }
-  else if (ty === 'channel') { const s = (p1.y - p0.y) / ((p1.x - p0.x) || 1), v = p2.y - (p0.y + s * (p2.x - p0.x)); const a = { x: p0.x, y: p0.y + v }, b = { x: p1.x, y: p1.y + v }; cx.globalAlpha = .1; cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y); cx.lineTo(b.x, b.y); cx.lineTo(a.x, a.y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line(p0, p1); line(a, b); cx.setLineDash([4, 4]); line({ x: p0.x, y: p0.y + v / 2 }, { x: p1.x, y: p1.y + v / 2 }); cx.setLineDash([]); }
-  else if (ty === 'flat') { line(p0, p1); const y = p2.y; cx.globalAlpha = .1; cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y); cx.lineTo(p1.x, y); cx.lineTo(p0.x, y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line({ x: p0.x, y }, { x: p1.x, y }); }
+  else if (ty === 'channel') { const s = (p1.y - p0.y) / ((p1.x - p0.x) || 1), v = p2.y - (p0.y + s * (p2.x - p0.x)); const a = { x: p0.x, y: p0.y + v }, b = { x: p1.x, y: p1.y + v }; cx.globalAlpha = FA(d, .1); cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y); cx.lineTo(b.x, b.y); cx.lineTo(a.x, a.y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line(p0, p1); line(a, b); cx.setLineDash([4, 4]); line({ x: p0.x, y: p0.y + v / 2 }, { x: p1.x, y: p1.y + v / 2 }); cx.setLineDash([]); }
+  else if (ty === 'flat') { line(p0, p1); const y = p2.y; cx.globalAlpha = FA(d, .1); cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y); cx.lineTo(p1.x, y); cx.lineTo(p0.x, y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line({ x: p0.x, y }, { x: p1.x, y }); }
   else if (ty === 'regr') {
     const a = findIdx(D[0].d), b = findIdx(D[1].d), i1 = Math.min(a, b), i2 = Math.max(a, b); if (i2 - i1 < 2) return; const n = i2 - i1 + 1; let sx = 0, sy = 0, sxy = 0, sxx = 0; for (let i = i1; i <= i2; i++) { const x = i - i1, y = S.bars[i].close; sx += x; sy += y; sxy += x * y; sxx += x * x; }
     const sl = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), ic = (sy - sl * sx) / n; let ss = 0; for (let i = i1; i <= i2; i++) { const e = S.bars[i].close - (ic + sl * (i - i1)); ss += e * e; } const sd = Math.sqrt(ss / n);
     const seg = (off) => { const ya = Y(ic + off), yb = Y(ic + sl * (n - 1) + off), xa = X(i1), xb = X(i2); if (ya == null || yb == null || xa == null || xb == null) return null; return [{ x: xa, y: ya }, { x: xb, y: yb }]; };
-    const c = seg(0), u = seg(2 * sd), l = seg(-2 * sd); if (!c || !u || !l) return; cx.globalAlpha = .08; cx.beginPath(); cx.moveTo(u[0].x, u[0].y); cx.lineTo(u[1].x, u[1].y); cx.lineTo(l[1].x, l[1].y); cx.lineTo(l[0].x, l[0].y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line(c[0], c[1]); line(u[0], u[1]); line(l[0], l[1]);
+    const c = seg(0), u = seg(2 * sd), l = seg(-2 * sd); if (!c || !u || !l) return; cx.globalAlpha = FA(d, .08); cx.beginPath(); cx.moveTo(u[0].x, u[0].y); cx.lineTo(u[1].x, u[1].y); cx.lineTo(l[1].x, l[1].y); cx.lineTo(l[0].x, l[0].y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line(c[0], c[1]); line(u[0], u[1]); line(l[0], l[1]);
   }
   else if (ty === 'fibext') { const A = D[0], B = D[1], C = D[2], xr = Math.max(p0.x, p1.x, p2.x) + 80; cx.setLineDash([4, 4]); line(p0, p1); line(p1, p2); cx.setLineDash([]); [0, .618, 1, 1.618, 2.618, 4.236].forEach(l => { const pr = C.p + (B.p - A.p) * l, y = Y(pr); if (y == null) return; cx.globalAlpha = .8; line({ x: p2.x, y }, { x: xr, y }); cx.globalAlpha = 1; cx.fillText(l + '  ' + fmt(pr), xr + 4, y + 4); }); }
   else if (ty === 'fibtime') { const i0 = findIdx(D[0].d), st = Math.max(1, findIdx(D[1].d) - i0); [0, 1, 2, 3, 5, 8, 13, 21, 34, 55].forEach(f => { const x = X(i0 + f * st); if (x == null) return; cx.globalAlpha = .6; line({ x, y: 0 }, { x, y: H }); cx.globalAlpha = 1; cx.fillText(String(f), x + 3, 12); }); }
@@ -363,20 +365,20 @@ function drawMore(d, P, W, H, line, ext) {
   else if (ty === 'long' || ty === 'short') {
     const E = D[0].p, TP = D[1].p, SL = D[2].p, yE = Y(E), yT = Y(TP), yS = Y(SL); if (yE == null || yT == null || yS == null) return;
     const xa = p0.x; let xb = p1.x; if (Math.abs(xb - xa) < 40) xb = xa + 120; const x1 = Math.min(xa, xb), w = Math.abs(xb - xa);
-    cx.globalAlpha = .18; cx.fillStyle = '#26a69a'; cx.fillRect(x1, Math.min(yE, yT), w, Math.abs(yT - yE)); cx.fillStyle = '#ef5350'; cx.fillRect(x1, Math.min(yE, yS), w, Math.abs(yS - yE)); cx.globalAlpha = 1; cx.fillStyle = color;
+    cx.globalAlpha = FA(d, .18); cx.fillStyle = '#26a69a'; cx.fillRect(x1, Math.min(yE, yT), w, Math.abs(yT - yE)); cx.fillStyle = '#ef5350'; cx.fillRect(x1, Math.min(yE, yS), w, Math.abs(yS - yE)); cx.globalAlpha = 1; cx.fillStyle = color;
     line({ x: x1, y: yE }, { x: x1 + w, y: yE }); const rr = Math.abs(SL - E) > 0 ? Math.abs(TP - E) / Math.abs(SL - E) : 0;
     tag(L2(ty === 'long' ? 'شراء' : 'بيع', ty === 'long' ? 'Long' : 'Short') + '  R:R ' + rr.toFixed(2), x1 + 4, Math.min(yE, yT, yS) - 6);
     tag(L2('هدف ', 'Target ') + fmt(TP) + ' (' + pct(TP / E - 1) + ')', x1 + 4, yT + (yT < yE ? 14 : -4), 'rgba(38,166,154,.4)'); tag(L2('وقف ', 'Stop ') + fmt(SL) + ' (' + pct(SL / E - 1) + ')', x1 + 4, yS + (yS < yE ? 14 : -4), 'rgba(239,83,80,.4)');
   }
   else if (ty === 'prange' || ty === 'drange' || ty === 'pdrange') {
     const x1 = Math.min(p0.x, p1.x), x2 = Math.max(p0.x, p1.x), y1 = Math.min(p0.y, p1.y), y2 = Math.max(p0.y, p1.y), bars = Math.abs(findIdx(D[1].d) - findIdx(D[0].d));
-    cx.globalAlpha = .12; if (ty === 'pdrange') cx.fillRect(x1, y1, x2 - x1, y2 - y1); else if (ty === 'prange') cx.fillRect(x1, y1, Math.max(x2 - x1, 60), y2 - y1); else cx.fillRect(x1, 0, x2 - x1, H); cx.globalAlpha = 1;
+    cx.globalAlpha = FA(d, .12); if (ty === 'pdrange') cx.fillRect(x1, y1, x2 - x1, y2 - y1); else if (ty === 'prange') cx.fillRect(x1, y1, Math.max(x2 - x1, 60), y2 - y1); else cx.fillRect(x1, 0, x2 - x1, H); cx.globalAlpha = 1;
     if (ty !== 'drange') { line({ x: x1, y: y1 }, { x: Math.max(x2, x1 + 60), y: y1 }); line({ x: x1, y: y2 }, { x: Math.max(x2, x1 + 60), y: y2 }); const mx = (x1 + Math.max(x2, x1 + 60)) / 2; line({ x: mx, y: y1 }, { x: mx, y: y2 }); }
     if (ty !== 'prange') { line({ x: x1, y: 0 }, { x: x1, y: H }); line({ x: x2, y: 0 }, { x: x2, y: H }); line({ x: x1, y: p0.y }, { x: x2, y: p0.y }); }
     const dp = D[1].p - D[0].p; tag((ty === 'drange' ? '' : pct(D[1].p / D[0].p - 1) + ' (' + fmt(dp) + ')  ') + (ty === 'prange' ? '' : bars + ' bars'), x2 + 6, p1.y - 6);
   }
-  else if (ty === 'ellipse') { const cxx = (p0.x + p1.x) / 2, cyy = (p0.y + p1.y) / 2, rx = Math.abs(p1.x - p0.x) / 2, ry = Math.abs(p1.y - p0.y) / 2; cx.beginPath(); cx.ellipse(cxx, cyy, Math.max(1, rx), Math.max(1, ry), 0, 0, 7); cx.globalAlpha = .12; cx.fill(); cx.globalAlpha = 1; cx.stroke(); }
-  else if (ty === 'triangle') { poly(P.length >= 3 ? [P[0], P[1], P[2], P[0]] : P, .12); }
+  else if (ty === 'ellipse') { const cxx = (p0.x + p1.x) / 2, cyy = (p0.y + p1.y) / 2, rx = Math.abs(p1.x - p0.x) / 2, ry = Math.abs(p1.y - p0.y) / 2; cx.beginPath(); cx.ellipse(cxx, cyy, Math.max(1, rx), Math.max(1, ry), 0, 0, 7); cx.globalAlpha = FA(d, .12); cx.fill(); cx.globalAlpha = 1; cx.stroke(); }
+  else if (ty === 'triangle') { poly(P.length >= 3 ? [P[0], P[1], P[2], P[0]] : P, FA(d, .12)); }
   else if (ty === 'plabel') { const t = fmt(D[0].p); cx.font = 'bold 12px system-ui'; const w = cx.measureText(t).width + 10; cx.fillRect(p0.x, p0.y - 10, w, 20); cx.fillStyle = '#0e1116'; cx.fillText(t, p0.x + 5, p0.y + 4); cx.fillStyle = color; cx.beginPath(); cx.arc(p0.x, p0.y, 3, 0, 7); cx.fill(); }
   else if (ty === 'arrowup') { poly([{ x: p0.x, y: p0.y }, { x: p0.x - 9, y: p0.y + 16 }, { x: p0.x + 9, y: p0.y + 16 }, { x: p0.x, y: p0.y }], .9); }
   else if (ty === 'arrowdn') { poly([{ x: p0.x, y: p0.y }, { x: p0.x - 9, y: p0.y - 16 }, { x: p0.x + 9, y: p0.y - 16 }, { x: p0.x, y: p0.y }], .9); }
@@ -430,20 +432,20 @@ function drawAutoVP(W, H) {
 }
 function vpSummary(d) { const r = vpCompute(d, d.rows || 24); return r && r.sum ? 'POC ' + fmt(r.lo + (r.poc + 0.5) * r.step) : ''; }
 function drawOne(d, W, H, isSel) {
-  const pts = d.pts.map(toPx); if (pts.some(p => !p)) return; const color = d.color || '#f5c542'; cx.strokeStyle = color; cx.fillStyle = color; cx.lineWidth = isSel ? 2.5 : 1.5; cx.font = '12px system-ui'; cx.setLineDash([]);
+  const pts = d.pts.map(toPx); if (pts.some(p => !p)) return; const color = d.color || '#f5c542'; cx.strokeStyle = color; cx.fillStyle = color; cx.lineWidth = (d.w || 1.5) + (isSel ? 1 : 0); cx.font = '12px system-ui'; cx.setLineDash(d.ls === 'dash' ? [8, 5] : d.ls === 'dot' ? [2, 4] : []);
   const ext = (a, b) => { const dx = b.x - a.x, dy = b.y - a.y; if (!dx && !dy) return b; const t = Math.max(W, H) * 20 / Math.hypot(dx, dy); return { x: a.x + dx * t, y: a.y + dy * t }; };
   const line = (a, b) => { cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke(); };
   if (d.type === 'trend') line(pts[0], pts[1]);
   else if (d.type === 'ray') line(pts[0], ext(pts[0], pts[1]));
   else if (d.type === 'hline') { line({ x: 0, y: pts[0].y }, { x: W, y: pts[0].y }); cx.fillText(fmt(d.pts[0].p), 6, pts[0].y - 4); }
   else if (d.type === 'vline') line({ x: pts[0].x, y: 0 }, { x: pts[0].x, y: H });
-  else if (d.type === 'rect') { const x = Math.min(pts[0].x, pts[1].x), y = Math.min(pts[0].y, pts[1].y), w = Math.abs(pts[0].x - pts[1].x), h = Math.abs(pts[0].y - pts[1].y); cx.globalAlpha = .12; cx.fillRect(x, y, w, h); cx.globalAlpha = 1; cx.strokeRect(x, y, w, h); }
+  else if (d.type === 'rect') { const x = Math.min(pts[0].x, pts[1].x), y = Math.min(pts[0].y, pts[1].y), w = Math.abs(pts[0].x - pts[1].x), h = Math.abs(pts[0].y - pts[1].y); cx.globalAlpha = FA(d, .12); cx.fillRect(x, y, w, h); cx.globalAlpha = 1; cx.strokeRect(x, y, w, h); }
   else if (d.type === 'fib') { const [a, b] = d.pts, x1 = pts[0].x, x2 = pts[1].x; [0, .236, .382, .5, .618, .786, 1].forEach(l => { const p = b.p + (a.p - b.p) * l, y = main.priceToCoordinate(p); if (y == null) return; cx.globalAlpha = l === 0 || l === 1 ? 1 : .75; cx.beginPath(); cx.moveTo(Math.min(x1, x2), y); cx.lineTo(Math.max(x1, x2, Math.min(x1, x2) + 40), y); cx.stroke(); cx.globalAlpha = 1; cx.fillText(l + '  (' + fmt(p) + ')', Math.min(x1, x2) + 4, y - 3); }); cx.setLineDash([4, 4]); line(pts[0], pts[1]); cx.setLineDash([]); }
   else if (d.type === 'text') { cx.font = 'bold 13px system-ui'; cx.fillText(d.text || '', pts[0].x, pts[0].y); }
   else if (d.type === 'measure') { cx.setLineDash([5, 4]); line(pts[0], pts[1]); cx.setLineDash([]); const [a, b] = d.pts, nb = findIdx(b.d) - findIdx(a.d), ch = b.p / a.p - 1; const txt = `${pct(ch)}  (${fmt(b.p - a.p)})  ${nb} bars`; cx.fillStyle = '#0e1116'; const tw = cx.measureText(txt).width + 10; cx.fillRect(pts[1].x + 6, pts[1].y - 18, tw, 20); cx.fillStyle = color; cx.fillText(txt, pts[1].x + 11, pts[1].y - 4); }
   else if (d.type === 'vp') { drawVP(d, pts, W, H, isSel); }
   else drawMore(d, pts, W, H, line, ext);
-  if (isSel) pts.forEach(p => { cx.beginPath(); cx.arc(p.x, p.y, 4, 0, 7); cx.fillStyle = '#fff'; cx.fill(); cx.strokeStyle = color; cx.stroke(); });
+  if (isSel) pts.forEach(p => { cx.setLineDash([]); cx.beginPath(); cx.arc(p.x, p.y, HT > 6 ? 7 : 5, 0, 7); cx.fillStyle = '#fff'; cx.fill(); cx.strokeStyle = color; cx.stroke(); });
 }
 function redraw() {
   if (!main) return; const { W, H } = fitCanvas(); cx.clearRect(0, 0, W, H);
@@ -452,7 +454,7 @@ function redraw() {
   if (pending && hover) { const pp = pending.pts.concat([hover]); while (pp.length < NEED[pending.type]) pp.push(hover); drawOne({ type: pending.type, color: S.color, pts: pp }, W, H, false); }
 }
 const redrawSoon = () => { lastSig = ''; };
-function loop() { try { placeLegends(); if (main && S.bars.length) { const r = chart.timeScale().getVisibleLogicalRange(), sig = [r && r.from.toFixed(2), r && r.to.toFixed(2), main.priceToCoordinate(1), main.priceToCoordinate(1000), wrap.clientWidth, wrap.clientHeight, S.sym, S.tf, drawings[S.sym]?.length, selected && 1, hover && hover.d + hover.p, S.type, chart.priceScale('right').width(), S.inds.map(x => x.id + (x.p || []) + ((x.o && x.o.hidden) ? 'h' : '')).join()].join('|'); if (sig !== lastSig) { lastSig = sig; redraw(); } } } catch (e) { } requestAnimationFrame(loop); }
+function loop() { try { if (selected !== lastSelShown) { lastSelShown = selected; showDtool(); } placeLegends(); if (main && S.bars.length) { const r = chart.timeScale().getVisibleLogicalRange(), sig = [r && r.from.toFixed(2), r && r.to.toFixed(2), main.priceToCoordinate(1), main.priceToCoordinate(1000), wrap.clientWidth, wrap.clientHeight, S.sym, S.tf, drawings[S.sym]?.length, selected && 1, hover && hover.d + hover.p, S.type, chart.priceScale('right').width(), S.inds.map(x => x.id + (x.p || []) + ((x.o && x.o.hidden) ? 'h' : '')).join()].join('|'); if (sig !== lastSig) { lastSig = sig; redraw(); } } } catch (e) { } requestAnimationFrame(loop); }
 cv.addEventListener('pointermove', (e) => { if (!pending) return; const r = cv.getBoundingClientRect(); hover = fromPx(e.clientX - r.left, e.clientY - r.top); });
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), pt = fromPx(e.clientX - r.left, e.clientY - r.top); if (!pt) return;
@@ -464,22 +466,22 @@ function askText(x, y, cb) { const box = $('#textPrompt'); box.hidden = false; b
 function distSeg(p, a, b) { const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy; let t = L ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)); }
 function hit(d, p) {
   const q = d.pts.map(toPx); if (q.some(x => !x)) return false;
-  if (d.type === 'hray') return Math.abs(p.y - q[0].y) < 6 && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < 6 || Math.abs(p.x - q[0].x) < 6;
+  if (d.type === 'hray') return Math.abs(p.y - q[0].y) < HT && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < HT || Math.abs(p.x - q[0].x) < HT;
   if (d.type === 'plabel' || d.type === 'arrowup' || d.type === 'arrowdn') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 20;
   if (q.length < 2 && !['hline', 'vline', 'text'].includes(d.type)) return false;
-  if (d.type === 'trend' || d.type === 'measure') return distSeg(p, q[0], q[1]) < 6;
-  if (d.type === 'ray') { const dx = q[1].x - q[0].x, dy = q[1].y - q[0].y, L = Math.hypot(dx, dy) || 1; return distSeg(p, q[0], { x: q[0].x + dx / L * 5000, y: q[0].y + dy / L * 5000 }) < 6; }
-  if (d.type === 'hline') return Math.abs(p.y - q[0].y) < 6; if (d.type === 'vline') return Math.abs(p.x - q[0].x) < 6;
-  if (d.type === 'text') return Math.abs(p.x - q[0].x) < 60 && Math.abs(p.y - q[0].y) < 14;
+  if (d.type === 'trend' || d.type === 'measure') return distSeg(p, q[0], q[1]) < HT;
+  if (d.type === 'ray') { const dx = q[1].x - q[0].x, dy = q[1].y - q[0].y, L = Math.hypot(dx, dy) || 1; return distSeg(p, q[0], { x: q[0].x + dx / L * 5000, y: q[0].y + dy / L * 5000 }) < HT; }
+  if (d.type === 'hline') return Math.abs(p.y - q[0].y) < HT; if (d.type === 'vline') return Math.abs(p.x - q[0].x) < HT;
+  if (d.type === 'text') return Math.abs(p.x - q[0].x) < HT0 && Math.abs(p.y - q[0].y) < 14;
   const x1 = Math.min(q[0].x, q[1].x), x2 = Math.max(q[0].x, q[1].x), y1 = Math.min(q[0].y, q[1].y), y2 = Math.max(q[0].y, q[1].y);
-  if (d.type === 'rect') return (p.x >= x1 - 5 && p.x <= x2 + 5 && p.y >= y1 - 5 && p.y <= y2 + 5) && (Math.abs(p.x - x1) < 6 || Math.abs(p.x - x2) < 6 || Math.abs(p.y - y1) < 6 || Math.abs(p.y - y2) < 6);
+  if (d.type === 'rect') return (p.x >= x1 - 5 && p.x <= x2 + 5 && p.y >= y1 - 5 && p.y <= y2 + 5) && (Math.abs(p.x - x1) < HT || Math.abs(p.x - x2) < HT || Math.abs(p.y - y1) < HT || Math.abs(p.y - y2) < HT);
   if (d.type === 'fib') return p.x >= x1 - 5 && p.x <= x2 + 60 && p.y >= y1 - 5 && p.y <= y2 + 5;
   const bx1 = Math.min(...q.map(z => z.x)), bx2 = Math.max(...q.map(z => z.x)), by1 = Math.min(...q.map(z => z.y)), by2 = Math.max(...q.map(z => z.y));
-  if (d.type === 'hray') return Math.abs(p.y - q[0].y) < 6 && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < 6 || Math.abs(p.x - q[0].x) < 6;
-  if (d.type === 'extended' || d.type === 'info' || d.type === 'arrow') return distSeg(p, q[0], q[1]) < 6 || (d.type === 'extended' && distSeg(p, q[0], { x: q[0].x + (q[0].x - q[1].x) * 1000, y: q[0].y + (q[0].y - q[1].y) * 1000 }) < 6);
+  if (d.type === 'hray') return Math.abs(p.y - q[0].y) < HT && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < HT || Math.abs(p.x - q[0].x) < HT;
+  if (d.type === 'extended' || d.type === 'info' || d.type === 'arrow') return distSeg(p, q[0], q[1]) < HT || (d.type === 'extended' && distSeg(p, q[0], { x: q[0].x + (q[0].x - q[1].x) * 1000, y: q[0].y + (q[0].y - q[1].y) * 1000 }) < HT);
   if (['abcd', 'xabcd', 'hs'].includes(d.type)) { for (let i = 0; i < q.length - 1; i++) if (distSeg(p, q[i], q[i + 1]) < 7) return true; return false; }
   if (d.type === 'plabel' || d.type === 'arrowup' || d.type === 'arrowdn') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 20;
-  if (['fibtime', 'drange'].includes(d.type)) return Math.abs(p.x - q[0].x) < 6 || Math.abs(p.x - q[1].x) < 6;
+  if (['fibtime', 'drange'].includes(d.type)) return Math.abs(p.x - q[0].x) < HT || Math.abs(p.x - q[1].x) < HT;
   return p.x >= bx1 - 6 && p.x <= bx2 + 90 && p.y >= by1 - 6 && p.y <= by2 + 6;
 }
 chart.subscribeClick((param) => { if (S.tool !== 'cursor' || !param.point) return; selected = null; const l = loadDrawings(); for (let i = l.length - 1; i >= 0; i--) if (hit(l[i], param.point)) { selected = l[i]; break; } redrawSoon(); renderDrawList(); });
@@ -766,3 +768,42 @@ $('#about').onclick = () => {
   dlg.addEventListener('pointerdown', (e) => { if (e.target === dlg) dlg.remove(); });
   document.body.append(dlg);
 };
+
+/* ---------------- drawing editing (stage 2) ---------------- */
+const FILL_TYPES = new Set(['rect', 'channel', 'flat', 'regr', 'ellipse', 'triangle', 'prange', 'drange', 'pdrange']);
+function showDtool() {
+  document.querySelector('#dtool')?.remove(); const d = selected; if (!d) return;
+  const l = loadDrawings(), save = () => { saveDrawings(); redrawSoon(); renderDrawList(); };
+  const sel = (opts, val, fn) => { const s = el('select', { onchange: (e) => fn(e.target.value) }, ...opts.map(([v, t]) => el('option', { value: v }, t))); s.value = String(val); return s; };
+  const bar = el('div', { id: 'dtool' },
+    el('input', { type: 'color', value: /^#[0-9a-f]{6}$/i.test(d.color || '') ? d.color : '#f5c542', title: L2('اللون', 'Colour'), oninput: (e) => { d.color = e.target.value; save(); } }),
+    sel([[1, '1'], [1.5, '1.5'], [2, '2'], [3, '3'], [4, '4']], d.w || 1.5, (v) => { d.w = +v; save(); }),
+    sel([['solid', '—'], ['dash', '- -'], ['dot', '···']], d.ls || 'solid', (v) => { d.ls = v; save(); }));
+  if (FILL_TYPES.has(d.type)) bar.append(sel([[0, L2('بدون تعبئة', 'No fill')], [0.08, '8%'], [0.12, '12%'], [0.2, '20%'], [0.35, '35%']], d.fa == null ? 0.12 : d.fa, (v) => { d.fa = +v; save(); }));
+  if (d.type === 'text') bar.append(el('button', { title: L2('تعديل النص', 'Edit text'), onclick: () => { const t = prompt(L2('النص', 'Text'), d.text || ''); if (t != null) { d.text = t; save(); } } }, '✎'));
+  bar.append(el('button', { title: L2('نسخ', 'Duplicate'), onclick: () => { const c = JSON.parse(JSON.stringify(d)); l.push(c); selected = c; save(); } }, '⧉'),
+    el('button', { title: L2('حذف', 'Delete'), onclick: () => { const i = l.indexOf(d); if (i >= 0) l.splice(i, 1); selected = null; save(); } }, '🗑'),
+    el('button', { title: L2('إغلاق', 'Close'), onclick: () => { selected = null; redrawSoon(); } }, '✕'));
+  wrap.append(bar);
+}
+function ptrXY(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function noMagnetPx(x, y) { const m = S.magnet; S.magnet = false; const r = fromPx(x, y); S.magnet = m; return r; }
+wrap.addEventListener('pointerdown', (e) => {
+  dragFlag = false; if (S.tool !== 'cursor' || (e.button != null && e.button > 0)) return; if (e.target.closest('#dtool,.plg,#textPrompt')) return;
+  HT = e.pointerType === 'touch' ? 14 : 6; const p = ptrXY(e); let mode = null;
+  if (selected) { const q = selected.pts.map(toPx); if (q.every(Boolean)) { const i = q.findIndex(z => Math.hypot(z.x - p.x, z.y - p.y) <= HT + 4); if (i >= 0) mode = { k: 'pt', i }; } }
+  if (!mode) { const l = loadDrawings(); let h = null; for (let i = l.length - 1; i >= 0; i--) if (hit(l[i], p)) { h = l[i]; break; } if (h) { selected = h; mode = { k: 'all' }; renderDrawList(); } }
+  if (!mode) return;
+  drag = { mode, start: p, q0: selected.pts.map(toPx), moved: false }; dragFlag = true; e.stopPropagation(); e.preventDefault(); redrawSoon();
+}, true);
+['mousedown', 'touchstart', 'click'].forEach(t => wrap.addEventListener(t, (e) => { if (dragFlag && !e.target.closest('#dtool')) { e.stopPropagation(); } }, true));
+wrap.addEventListener('touchmove', (e) => { if (drag) { e.preventDefault(); e.stopPropagation(); } }, { capture: true, passive: false });
+window.addEventListener('pointermove', (e) => {
+  if (!drag) return; const p = ptrXY(e), dx = p.x - drag.start.x, dy = p.y - drag.start.y; if (!drag.moved && Math.hypot(dx, dy) < 4) return; drag.moved = true; e.preventDefault();
+  if (drag.mode.k === 'pt') { const np = (S.magnet ? fromPx : noMagnetPx)(p.x, p.y); if (np) selected.pts[drag.mode.i] = np; }
+  else { const np = drag.q0.map(z => noMagnetPx(z.x + dx, z.y + dy)); if (np.every(Boolean)) selected.pts = np; }
+  redrawSoon();
+}, { passive: false });
+const endDrag = () => { if (!drag) return; if (drag.moved) { saveDrawings(); renderDrawList(); } drag = null; setTimeout(() => { dragFlag = false; }, 60); };
+window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', endDrag);
+document.addEventListener('keydown', (e) => { if ((e.key === 'Delete' || e.key === 'Backspace') && selected && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) { const l = loadDrawings(), i = l.indexOf(selected); if (i >= 0) { l.splice(i, 1); selected = null; saveDrawings(); renderDrawList(); redrawSoon(); } } });
