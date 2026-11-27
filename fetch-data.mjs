@@ -58,3 +58,23 @@ await Promise.all([worker(), worker(), worker()]);
 const order = new Map(U.map((u, i) => [u.id, i])); meta.sort((a, b) => order.get(a.id) - order.get(b.id));
 fs.writeFileSync(new URL('./symbols.js', out), `window.EGX_SYMBOLS=${JSON.stringify(meta)};window.EGX_FETCHED=${JSON.stringify(new Date().toISOString())};`);
 console.log('listed', U.length, 'with data', meta.filter(m => m.src).length, 'derived', meta.filter(m => m.src === 'hourly').length, 'no data', meta.filter(m => !m.src).length);
+
+// Precomputed screener rows (same numbers as the in-browser scan, split-adjusted) so the scanner tab opens instantly.
+try {
+  const vm = await import('vm');
+  const tctx = {}; tctx.window = tctx; vm.runInNewContext(fs.readFileSync(new URL('../ta.js', import.meta.url), 'utf8'), tctx); const TA = tctx.TA;
+  const r4 = (x) => Math.round(x * 10000) / 10000, rows = [];
+  for (const m of meta) {
+    if (!m.src) continue;
+    const dctx = { window: {} }; dctx.window.EGX_DATA = {}; vm.runInNewContext(fs.readFileSync(new URL(m.id + '.js', out), 'utf8'), { window: dctx.window });
+    const D = dctx.window.EGX_DATA[m.id]; if (!D) continue; const sp = D.splits || [];
+    const af = (d) => { let f = 1; for (const q of sp) if (q[0] > d) f *= q[1]; return f; };
+    const daily = D.rows.map(r => { const f = sp.length ? af(r[0]) : 1; return f === 1 ? { time: r[0], high: r[2], low: r[3], close: r[4], volume: r[5] } : { time: r[0], high: r4(r[2] / f), low: r4(r[3] / f), close: r4(r[4] / f), volume: Math.round(r[5] * f) }; });
+    const n = daily.length; if (n <= 60) continue;
+    const c = daily.map(b => b.close), last = c[n - 1], ret = (k) => n > k ? last / c[n - 1 - k] - 1 : null;
+    const y = daily.slice(-252), hi = Math.max(...y.map(b => b.high)), v30 = daily.slice(-30), turn = v30.reduce((a, b) => a + b.volume * b.close, 0) / v30.length;
+    rows.push({ id: m.id, last, date: daily[n - 1].time, d1: ret(1), m1: ret(21), y1: ret(252), rsi: TA.rsi(c, 14)[n - 1], fromHi: last / hi - 1, turn, s50: TA.sma(c, 50)[n - 1], s200: TA.sma(c, 200)[n - 1] });
+  }
+  fs.writeFileSync(new URL('./scan.js', out), `window.EGX_SCAN=${JSON.stringify({ adj: true, fetched: new Date().toISOString(), rows })};`);
+  console.log('scan rows', rows.length);
+} catch (e) { console.log('scan build failed', e.message); }
