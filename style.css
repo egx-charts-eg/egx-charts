@@ -117,3 +117,4 @@ body.drawing .plg{pointer-events:none}
 }
 #tabs .xbtn{position:sticky;inset-inline-end:0;background:var(--bg2);z-index:2}
 @media (max-width:760px){#tabs{flex-wrap:wrap;overflow:visible}#tabs button{flex:1 1 28%}#tabs .xbtn{position:static;flex:0 0 auto;order:-1;background:none}}
+.group button.off{opacity:.38}

@@ -198,8 +198,9 @@ async function setSymbol(id, keepRange) {
   id = id.toUpperCase().trim();
   if (!symMap[id]) { $('#symInput').value = S.sym; return; }
   try { S.daily = await loadDaily(id); } catch (e) { if (!isIntra(S.tf)) { alert(e.message); return; } S.daily = []; }
+  if (isIntra(S.tf) && !INTRA_IDS.has(id.toUpperCase())) { S.tf = 'D'; store.set('tf', 'D'); }
   S.intra = null; if (isIntra(S.tf)) { try { S.intra = await loadIntra(id); } catch (e) { alert(e.message); } }
-  S.sym = id; store.set('sym', id); $('#symInput').value = id;
+  S.sym = id; store.set('sym', id); $('#symInput').value = id; buildTop();
   setName();
   document.title = id + ' | TradinGo';
   refreshBars(); if (!keepRange) applyRange(); loadDrawings(); selected = null; renderDrawList(); redrawSoon(); renderStats(); checkAlerts(false);
@@ -231,7 +232,7 @@ function refreshBars() {
 /* ---------------- UI wiring ---------------- */
 function buildTop() {
   const tf = $('#tfGroup'); tf.innerHTML = '';
-  ['15m', '1h', '2h', '3h', '4h', 'D', 'W', 'M', 'Q', 'Y'].forEach(k => tf.append(el('button', { class: S.tf === k ? 'on' : '', title: T().tf[k], onclick: async () => { if (isIntra(k) && !INTRA_IDS.has(S.sym)) { alert(T().noIntra); return; } S.tf = k; store.set('tf', k); S.intra = isIntra(k) ? await loadIntra(S.sym).catch(() => null) : null; buildTop(); refreshBars(); applyRange(); loadDrawings(); renderDrawList(); redrawSoon(); } }, k)));
+  ['15m', '1h', '2h', '3h', '4h', 'D', 'W', 'M', 'Q', 'Y'].forEach(k => tf.append(el('button', { class: (S.tf === k ? 'on' : '') + (isIntra(k) && !INTRA_IDS.has(S.sym) ? ' off' : ''), title: isIntra(k) && !INTRA_IDS.has(S.sym) ? T().noIntra : T().tf[k], onclick: async () => { if (isIntra(k) && !INTRA_IDS.has(S.sym)) { const dn = document.getElementById('dataNote'); if (dn) { const o = dn.innerHTML; dn.textContent = T().noIntra; setTimeout(() => updStamp && updStamp(), 2500); } return; } S.tf = k; store.set('tf', k); S.intra = isIntra(k) ? await loadIntra(S.sym).catch(() => null) : null; buildTop(); refreshBars(); applyRange(); loadDrawings(); renderDrawList(); redrawSoon(); } }, k)));
   const ty = $('#typeGroup'); ty.innerHTML = '';
   [['candle', '🕯'], ['bar', '▥'], ['line', '📈'], ['area', '◭']].forEach(([k, ic]) => ty.append(el('button', { class: S.type === k ? 'on' : '', title: T().types[k], onclick: () => { S.type = k; store.set('type', k); buildTop(); makeMain(); rebuildExtras(); redrawSoon(); } }, ic)));
   const rs = $('#rangeSel'); rs.innerHTML = ''; T().ranges.forEach((r, i) => rs.append(el('option', { value: i }, r))); rs.value = S.range;
