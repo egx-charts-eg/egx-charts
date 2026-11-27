@@ -1,0 +1,46 @@
+name: Refresh EGX data and deploy
+on:
+  schedule:
+    - cron: '30 13 * * 0-4'   # Sun-Thu 13:30 UTC (after the EGX close at 14:30 Cairo, ~16:30 summer/15:30 winter)
+    - cron: '30 17 * * 0-4'   # second run in case the first one failed
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Arrange files
+        run: |
+          mkdir -p vendor tools data
+          for f in lightweight-charts.js; do [ -f $f ] && mv $f vendor/; done
+          for f in build-single.mjs fetch-data.mjs universe.json; do [ -f $f ] && mv $f tools/; done
+          true
+      - name: Fetch prices
+        run: node tools/fetch-data.mjs
+      - name: Build single-file version
+        run: KEEP_YEARS=6 node tools/build-single.mjs
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp -r index.html style.css app.js ta.js vendor data _site/
+          cp dist/egx-charts.html _site/egx-charts.html
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+      - id: deployment
+        uses: actions/deploy-pages@v4
