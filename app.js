@@ -290,15 +290,17 @@ const dkey = () => 'draw.' + S.sym + (isIntra(S.tf) ? '.i' : '');
 const loadDrawings = () => { if (!drawings[S.sym]) drawings[S.sym] = store.get(dkey(), []); return drawings[S.sym]; };
 const saveDrawings = () => store.set(dkey(), drawings[S.sym]);
 /* ---------------- drawing tool groups ---------------- */
+const ICONS = ['★', '✔', '✖', '⚑', '🔥', '💡', '⚠', '❤', '🚀', '📈', '📉', '💰'];
 const TG = [
   { id: 'cur', items: [['cursor', '↖', 1, 'مؤشر', 'Cursor'], ['eraser', '⌫', 0, 'ممحاة (اضغط على رسم لحذفه)', 'Eraser (tap a drawing to delete)']] },
-  { id: 'lines', items: [['trend', '╱', 2, 'خط اتجاه', 'Trend line'], ['ray', '↗', 2, 'شعاع', 'Ray'], ['info', 'ⓘ', 2, 'خط معلومات', 'Info line'], ['extended', '⟷', 2, 'خط ممتد', 'Extended line'], ['hline', '─', 1, 'خط أفقي', 'Horizontal line'], ['hray', '⇥', 1, 'شعاع أفقي', 'Horizontal ray'], ['vline', '│', 1, 'خط رأسي', 'Vertical line'], ['cross', '✚', 1, 'خط متقاطع', 'Cross line'], ['arrow', '➚', 2, 'سهم', 'Arrow']] },
-  { id: 'chan', items: [['channel', '⫽', 3, 'قناة موازية', 'Parallel channel'], ['regr', '≈', 2, 'اتجاه الانحدار', 'Regression trend'], ['flat', '⎺', 3, 'قمة/قاع مسطح', 'Flat top/bottom']] },
-  { id: 'fib', items: [['fib', '≡', 2, 'فيبوناتشي ارتداد', 'Fib retracement'], ['fibext', '≣', 3, 'فيبوناتشي امتداد', 'Trend-based fib extension'], ['fibtime', '⦙', 2, 'مناطق فيبو الزمنية', 'Fib time zones'], ['fibfan', '◣', 2, 'مروحة فيبوناتشي', 'Fib speed fan'], ['fibcirc', '◎', 2, 'دوائر فيبوناتشي', 'Fib circles'], ['gann', '▨', 2, 'مروحة جان', 'Gann fan']] },
-  { id: 'pat', items: [['abcd', 'Ꭺ', 4, 'نموذج ABCD', 'ABCD pattern'], ['xabcd', '✕', 5, 'نموذج XABCD', 'XABCD pattern'], ['hs', '⩔', 7, 'رأس وكتفين', 'Head and shoulders']] },
-  { id: 'fc', items: [['long', '⬆', 3, 'مركز شراء (دخول، هدف، وقف)', 'Long position (entry, target, stop)'], ['short', '⬇', 3, 'مركز بيع (دخول، هدف، وقف)', 'Short position (entry, target, stop)'], ['measure', '↔', 2, 'قياس', 'Measure'], ['prange', '⇳', 2, 'نطاق سعري', 'Price range'], ['drange', '⇔', 2, 'نطاق زمني', 'Date range'], ['pdrange', '⬚', 2, 'نطاق سعر وزمن', 'Date and price range'], ['vp', '▤', 2, 'بروفايل الحجم (نطاق ثابت)', 'Volume Profile (Fixed Range)']] },
-  { id: 'shape', items: [['rect', '▭', 2, 'مستطيل', 'Rectangle'], ['ellipse', '⬭', 2, 'قطع ناقص', 'Ellipse'], ['triangle', '△', 3, 'مثلث', 'Triangle']] },
-  { id: 'note', items: [['text', 'T', 1, 'نص', 'Text'], ['plabel', '🏷', 1, 'علامة سعر', 'Price label'], ['arrowup', '▲', 1, 'سهم لأعلى', 'Arrow marker up'], ['arrowdn', '▼', 1, 'سهم لأسفل', 'Arrow marker down']] },
+  { id: 'lines', items: [['trend', '╱', 2, 'خط اتجاه', 'Trend line'], ['ray', '↗', 2, 'شعاع', 'Ray'], ['info', 'ⓘ', 2, 'خط معلومات', 'Info line'], ['extended', '⟷', 2, 'خط ممتد', 'Extended line'], ['hline', '─', 1, 'خط أفقي', 'Horizontal line'], ['hray', '⇥', 1, 'شعاع أفقي', 'Horizontal ray'], ['vline', '│', 1, 'خط رأسي', 'Vertical line'], ['cross', '✚', 1, 'خط متقاطع', 'Cross line'], ['arrow', '➚', 2, 'سهم', 'Arrow'], ['trendangle', '∠', 2, 'زاوية الاتجاه', 'Trend angle']] },
+  { id: 'chan', items: [['channel', '⫽', 3, 'قناة موازية', 'Parallel channel'], ['regr', '≈', 2, 'اتجاه الانحدار', 'Regression trend'], ['flat', '⎺', 3, 'قمة/قاع مسطح', 'Flat top/bottom'], ['disjoint', '⫿', 4, 'قناة منفصلة', 'Disjoint channel'], ['pitchfork', 'ψ', 3, 'مذراة أندروز', 'Andrews pitchfork']] },
+  { id: 'fib', items: [['fib', '≡', 2, 'فيبوناتشي ارتداد', 'Fib retracement'], ['fibext', '≣', 3, 'فيبوناتشي امتداد', 'Trend-based fib extension'], ['fibtime', '⦙', 2, 'مناطق فيبو الزمنية', 'Fib time zones'], ['fibfan', '◣', 2, 'مروحة فيبوناتشي', 'Fib speed fan'], ['fibcirc', '◎', 2, 'دوائر فيبوناتشي', 'Fib circles'], ['gann', '▨', 2, 'مروحة جان', 'Gann fan'], ['gannbox', '▦', 2, 'صندوق جان', 'Gann box']] },
+  { id: 'pat', items: [['abcd', 'Ꭺ', 4, 'نموذج ABCD', 'ABCD pattern'], ['xabcd', '✕', 5, 'نموذج XABCD', 'XABCD pattern'], ['hs', '⩔', 7, 'رأس وكتفين', 'Head and shoulders'], ['cypher', '☍', 5, 'نموذج Cypher (خطوط)', 'Cypher (lines)'], ['drives', 'ᗰ', 7, 'ثلاث دوافع (خطوط)', 'Three drives (lines)'], ['elliott5', '⑤', 6, 'موجة إليوت دافعة', 'Elliott impulse (0-5)'], ['elliott3', '③', 4, 'موجة إليوت تصحيحية', 'Elliott correction (0-ABC)'], ['cycle', '⦀', 2, 'خطوط الدورة', 'Cycle lines']] },
+  { id: 'fc', items: [['long', '⬆', 3, 'مركز شراء (دخول، هدف، وقف)', 'Long position (entry, target, stop)'], ['short', '⬇', 3, 'مركز بيع (دخول، هدف، وقف)', 'Short position (entry, target, stop)'], ['measure', '↔', 2, 'قياس', 'Measure'], ['prange', '⇳', 2, 'نطاق سعري', 'Price range'], ['drange', '⇔', 2, 'نطاق زمني', 'Date range'], ['pdrange', '⬚', 2, 'نطاق سعر وزمن', 'Date and price range'], ['avwap', '≋', 1, 'VWAP مثبت', 'Anchored VWAP'], ['vp', '▤', 2, 'بروفايل الحجم (نطاق ثابت)', 'Volume Profile (Fixed Range)']] },
+  { id: 'shape', items: [['rect', '▭', 2, 'مستطيل', 'Rectangle'], ['ellipse', '⬭', 2, 'قطع ناقص', 'Ellipse'], ['triangle', '△', 3, 'مثلث', 'Triangle'], ['circle', '○', 2, 'دائرة', 'Circle'], ['rotrect', '▱', 3, 'مستطيل مائل', 'Rotated rectangle'], ['polyline', '⌇', 0, 'خط متعدد (اضغط على آخر نقطة للإنهاء)', 'Polyline (tap the last point again to finish)'], ['brush', '✎', 0, 'فرشاة (اسحب)', 'Brush (drag)']] },
+  { id: 'note', items: [['text', 'T', 1, 'نص', 'Text'], ['plabel', '🏷', 1, 'علامة سعر', 'Price label'], ['arrowup', '▲', 1, 'سهم لأعلى', 'Arrow marker up'], ['arrowdn', '▼', 1, 'سهم لأسفل', 'Arrow marker down'], ['note', '🗒', 1, 'ملاحظة', 'Note'], ['callout', '💬', 2, 'نص مع سهم', 'Callout']] },
+  { id: 'icons', items: ICONS.map((ic, i) => ['ic' + i, ic, 1, 'أيقونة ' + ic, 'Icon ' + ic]) },
 ];
 const NEED = {}, TLAB = {}; TG.forEach(g => g.items.forEach(([k, , n, ar, en]) => { NEED[k] = n; TLAB[k] = [ar, en]; }));
 const toolLabel = (k) => (TLAB[k] || [k, k])[lang === 'ar' ? 0 : 1];
@@ -377,6 +379,18 @@ function drawMore(d, P, W, H, line, ext) {
     if (ty !== 'prange') { line({ x: x1, y: 0 }, { x: x1, y: H }); line({ x: x2, y: 0 }, { x: x2, y: H }); line({ x: x1, y: p0.y }, { x: x2, y: p0.y }); }
     const dp = D[1].p - D[0].p; tag((ty === 'drange' ? '' : pct(D[1].p / D[0].p - 1) + ' (' + fmt(dp) + ')  ') + (ty === 'prange' ? '' : bars + ' bars'), x2 + 6, p1.y - 6);
   }
+  else if (ty === 'brush' || ty === 'polyline') { cx.lineJoin = 'round'; poly(P, 0); }
+  else if (ty === 'trendangle') { line(p0, p1); const ang = Math.atan2(-(p1.y - p0.y), p1.x - p0.x) * 180 / Math.PI; tag(ang.toFixed(1) + '°', p1.x + 6, p1.y - 6); }
+  else if (ty === 'disjoint') { line(p0, p1); line(P[2], P[3]); cx.globalAlpha = FA(d, .1); cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y); cx.lineTo(P[3].x, P[3].y); cx.lineTo(P[2].x, P[2].y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; }
+  else if (ty === 'pitchfork') { const M = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }, v = { x: M.x - p0.x, y: M.y - p0.y }; line(p0, ext(p0, M)); line(p1, ext(p1, { x: p1.x + v.x, y: p1.y + v.y })); line(p2, ext(p2, { x: p2.x + v.x, y: p2.y + v.y })); cx.setLineDash([4, 4]); line(p1, p2); cx.setLineDash([]); }
+  else if (ty === 'gannbox') { const x1 = Math.min(p0.x, p1.x), x2 = Math.max(p0.x, p1.x), y1 = Math.min(p0.y, p1.y), y2 = Math.max(p0.y, p1.y), w = x2 - x1, h = y2 - y1; cx.globalAlpha = FA(d, .08); cx.fillRect(x1, y1, w, h); cx.globalAlpha = 1; cx.strokeRect(x1, y1, w, h); cx.globalAlpha = .6;[.25, .382, .5, .618, .75].forEach(l => { line({ x: x1, y: y1 + h * l }, { x: x2, y: y1 + h * l }); line({ x: x1 + w * l, y: y1 }, { x: x1 + w * l, y: y2 }); }); line({ x: x1, y: y1 }, { x: x2, y: y2 }); line({ x: x1, y: y2 }, { x: x2, y: y1 }); cx.globalAlpha = 1; }
+  else if (ty === 'cypher' || ty === 'drives' || ty === 'elliott5' || ty === 'elliott3') { const lab = ty === 'cypher' ? ['X', 'A', 'B', 'C', 'D'] : ty === 'drives' ? ['', '1', '', '2', '', '3', ''] : ty === 'elliott5' ? ['0', '1', '2', '3', '4', '5'] : ['0', 'A', 'B', 'C']; poly(P, 0); P.forEach((q, i) => { if (lab[i]) cx.fillText(lab[i], q.x + 4, q.y - 6); }); }
+  else if (ty === 'cycle') { const i0 = findIdx(D[0].d), st = Math.max(1, findIdx(D[1].d) - i0); for (let k = -20; k < 80; k++) { const x = X(i0 + k * st); if (x == null || x < 0 || x > W) continue; cx.globalAlpha = k === 0 ? 1 : .55; line({ x, y: 0 }, { x, y: H }); cx.globalAlpha = 1; } }
+  else if (ty === 'avwap') { const i0 = findIdx(D[0].d); let sv = 0, spv = 0; cx.beginPath(); let started = false; for (let i = i0; i < S.bars.length; i++) { const b = S.bars[i], v = b.volume || 0; sv += v; spv += v * (b.high + b.low + b.close) / 3; const val = sv ? spv / sv : (b.high + b.low + b.close) / 3, x = X(i), y = Y(val); if (x == null || y == null) continue; if (!started) { cx.moveTo(x, y); started = true; } else cx.lineTo(x, y); } cx.stroke(); cx.fillText('AVWAP', p0.x + 4, p0.y - 6); }
+  else if (ty === 'circle') { const r = Math.hypot(p1.x - p0.x, p1.y - p0.y); cx.beginPath(); cx.arc(p0.x, p0.y, r, 0, 7); cx.globalAlpha = FA(d, .1); cx.fill(); cx.globalAlpha = 1; cx.stroke(); }
+  else if (ty === 'rotrect') { const bx = p1.x - p0.x, by = p1.y - p0.y, bl = Math.hypot(bx, by) || 1, nx = -by / bl, ny = bx / bl, dist = (p2.x - p0.x) * nx + (p2.y - p0.y) * ny; poly([p0, p1, { x: p1.x + nx * dist, y: p1.y + ny * dist }, { x: p0.x + nx * dist, y: p0.y + ny * dist }, p0], FA(d, .12)); }
+  else if (ty === 'note' || ty === 'callout') { const t = d.text || ''; cx.save(); cx.font = '13px system-ui'; const bp = ty === 'callout' ? p1 : p0, w = cx.measureText(t).width + 14; if (ty === 'callout') line(p0, p1); cx.globalAlpha = .92; cx.fillStyle = '#161b22'; cx.fillRect(bp.x, bp.y - 16, w, 26); cx.globalAlpha = 1; cx.strokeRect(bp.x, bp.y - 16, w, 26); cx.fillStyle = color; cx.fillText(t, bp.x + 7, bp.y + 2); cx.restore(); }
+  else if (ty === 'icon') { cx.save(); cx.font = '24px system-ui'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(d.icon || '★', p0.x, p0.y); cx.restore(); }
   else if (ty === 'ellipse') { const cxx = (p0.x + p1.x) / 2, cyy = (p0.y + p1.y) / 2, rx = Math.abs(p1.x - p0.x) / 2, ry = Math.abs(p1.y - p0.y) / 2; cx.beginPath(); cx.ellipse(cxx, cyy, Math.max(1, rx), Math.max(1, ry), 0, 0, 7); cx.globalAlpha = FA(d, .12); cx.fill(); cx.globalAlpha = 1; cx.stroke(); }
   else if (ty === 'triangle') { poly(P.length >= 3 ? [P[0], P[1], P[2], P[0]] : P, FA(d, .12)); }
   else if (ty === 'plabel') { const t = fmt(D[0].p); cx.font = 'bold 12px system-ui'; const w = cx.measureText(t).width + 10; cx.fillRect(p0.x, p0.y - 10, w, 20); cx.fillStyle = '#0e1116'; cx.fillText(t, p0.x + 5, p0.y + 4); cx.fillStyle = color; cx.beginPath(); cx.arc(p0.x, p0.y, 3, 0, 7); cx.fill(); }
@@ -445,7 +459,7 @@ function drawOne(d, W, H, isSel) {
   else if (d.type === 'measure') { cx.setLineDash([5, 4]); line(pts[0], pts[1]); cx.setLineDash([]); const [a, b] = d.pts, nb = findIdx(b.d) - findIdx(a.d), ch = b.p / a.p - 1; const txt = `${pct(ch)}  (${fmt(b.p - a.p)})  ${nb} bars`; cx.fillStyle = '#0e1116'; const tw = cx.measureText(txt).width + 10; cx.fillRect(pts[1].x + 6, pts[1].y - 18, tw, 20); cx.fillStyle = color; cx.fillText(txt, pts[1].x + 11, pts[1].y - 4); }
   else if (d.type === 'vp') { drawVP(d, pts, W, H, isSel); }
   else drawMore(d, pts, W, H, line, ext);
-  if (isSel) pts.forEach(p => { cx.setLineDash([]); cx.beginPath(); cx.arc(p.x, p.y, HT > 6 ? 7 : 5, 0, 7); cx.fillStyle = '#fff'; cx.fill(); cx.strokeStyle = color; cx.stroke(); });
+  if (isSel) (pts.length > 14 ? [pts[0], pts.at(-1)] : pts).forEach(p => { cx.setLineDash([]); cx.beginPath(); cx.arc(p.x, p.y, HT > 6 ? 7 : 5, 0, 7); cx.fillStyle = '#fff'; cx.fill(); cx.strokeStyle = color; cx.stroke(); });
 }
 function redraw() {
   if (!main) return; const { W, H } = fitCanvas(); cx.clearRect(0, 0, W, H);
@@ -458,18 +472,22 @@ function loop() { try { if (selected !== lastSelShown) { lastSelShown = selected
 cv.addEventListener('pointermove', (e) => { if (!pending) return; const r = cv.getBoundingClientRect(); hover = fromPx(e.clientX - r.left, e.clientY - r.top); });
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), pt = fromPx(e.clientX - r.left, e.clientY - r.top); if (!pt) return;
+  if (S.tool === 'cursor') return;
+  if (S.tool === 'brush') return;
+  if (S.tool === 'polyline') { const R = cv.getBoundingClientRect(), q = { x: e.clientX - R.left, y: e.clientY - R.top }; if (!pending) pending = { type: 'polyline', pts: [pt] }; else { const lp = toPx(pending.pts.at(-1)); if (lp && Math.hypot(lp.x - q.x, lp.y - q.y) < 14) { if (pending.pts.length >= 2) finishPoly(); return; } pending.pts.push(pt); } return; }
   if (S.tool === 'eraser') { const l = loadDrawings(), q = { x: e.clientX - r.left, y: e.clientY - r.top }; for (let i = l.length - 1; i >= 0; i--) if (hit(l[i], q)) { l.splice(i, 1); selected = null; saveDrawings(); renderDrawList(); redrawSoon(); break; } return; }
   if (!pending) pending = { type: S.tool, pts: [pt] }; else pending.pts.push(pt);
-  if (pending.pts.length >= NEED[pending.type]) { const d = { type: pending.type, pts: pending.pts, color: S.color }; pending = null; hover = null; if (d.type === 'text') { askText(e.clientX - r.left, e.clientY - r.top, (t) => { if (t) { d.text = t; loadDrawings().push(d); saveDrawings(); renderDrawList(); } redrawSoon(); }); } else { loadDrawings().push(d); saveDrawings(); renderDrawList(); } setTool('cursor'); }
+  if (pending.pts.length >= NEED[pending.type]) { const d = { type: pending.type, pts: pending.pts, color: S.color }; if (/^ic\d+$/.test(d.type)) { d.icon = ICONS[+d.type.slice(2)]; d.type = 'icon'; } if (d.type === 'note' || d.type === 'callout') { const tx = prompt(L2('النص', 'Text'), ''); if (tx == null) { pending = null; hover = null; redrawSoon(); return; } d.text = tx; } pending = null; hover = null; if (d.type === 'text') { askText(e.clientX - r.left, e.clientY - r.top, (t) => { if (t) { d.text = t; loadDrawings().push(d); saveDrawings(); renderDrawList(); } redrawSoon(); }); } else { loadDrawings().push(d); saveDrawings(); renderDrawList(); } setTool('cursor'); }
 });
 function askText(x, y, cb) { const box = $('#textPrompt'); box.hidden = false; box.style.left = x + 'px'; box.style.top = y + 'px'; box.innerHTML = ''; const i = el('input', { placeholder: T().enterText }); i.onkeydown = (e) => { if (e.key === 'Enter') { box.hidden = true; cb(i.value); } else if (e.key === 'Escape') { box.hidden = true; cb(''); } }; box.append(i); i.focus(); }
 function distSeg(p, a, b) { const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy; let t = L ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)); }
 function hit(d, p) {
   const q = d.pts.map(toPx); if (q.some(x => !x)) return false;
   if (d.type === 'hray') return Math.abs(p.y - q[0].y) < HT && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < HT || Math.abs(p.x - q[0].x) < HT;
+  if (d.type === 'avwap' || d.type === 'icon' || d.type === 'note') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 22;
   if (d.type === 'plabel' || d.type === 'arrowup' || d.type === 'arrowdn') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 20;
   if (q.length < 2 && !['hline', 'vline', 'text'].includes(d.type)) return false;
-  if (d.type === 'trend' || d.type === 'measure') return distSeg(p, q[0], q[1]) < HT;
+  if (d.type === 'trend' || d.type === 'measure' || d.type === 'trendangle') return distSeg(p, q[0], q[1]) < HT;
   if (d.type === 'ray') { const dx = q[1].x - q[0].x, dy = q[1].y - q[0].y, L = Math.hypot(dx, dy) || 1; return distSeg(p, q[0], { x: q[0].x + dx / L * 5000, y: q[0].y + dy / L * 5000 }) < HT; }
   if (d.type === 'hline') return Math.abs(p.y - q[0].y) < HT; if (d.type === 'vline') return Math.abs(p.x - q[0].x) < HT;
   if (d.type === 'text') return Math.abs(p.x - q[0].x) < HT0 && Math.abs(p.y - q[0].y) < 14;
@@ -479,7 +497,8 @@ function hit(d, p) {
   const bx1 = Math.min(...q.map(z => z.x)), bx2 = Math.max(...q.map(z => z.x)), by1 = Math.min(...q.map(z => z.y)), by2 = Math.max(...q.map(z => z.y));
   if (d.type === 'hray') return Math.abs(p.y - q[0].y) < HT && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < HT || Math.abs(p.x - q[0].x) < HT;
   if (d.type === 'extended' || d.type === 'info' || d.type === 'arrow') return distSeg(p, q[0], q[1]) < HT || (d.type === 'extended' && distSeg(p, q[0], { x: q[0].x + (q[0].x - q[1].x) * 1000, y: q[0].y + (q[0].y - q[1].y) * 1000 }) < HT);
-  if (['abcd', 'xabcd', 'hs'].includes(d.type)) { for (let i = 0; i < q.length - 1; i++) if (distSeg(p, q[i], q[i + 1]) < 7) return true; return false; }
+  if (['abcd', 'xabcd', 'hs', 'brush', 'polyline', 'cypher', 'drives', 'elliott5', 'elliott3'].includes(d.type)) { for (let i = 0; i < q.length - 1; i++) if (distSeg(p, q[i], q[i + 1]) < 7) return true; return false; }
+  if (d.type === 'avwap' || d.type === 'icon' || d.type === 'note') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 22;
   if (d.type === 'plabel' || d.type === 'arrowup' || d.type === 'arrowdn') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 20;
   if (['fibtime', 'drange'].includes(d.type)) return Math.abs(p.x - q[0].x) < HT || Math.abs(p.x - q[1].x) < HT;
   return p.x >= bx1 - 6 && p.x <= bx2 + 90 && p.y >= by1 - 6 && p.y <= by2 + 6;
@@ -807,3 +826,12 @@ window.addEventListener('pointermove', (e) => {
 const endDrag = () => { if (!drag) return; if (drag.moved) { saveDrawings(); renderDrawList(); } drag = null; setTimeout(() => { dragFlag = false; }, 60); };
 window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', endDrag);
 document.addEventListener('keydown', (e) => { if ((e.key === 'Delete' || e.key === 'Backspace') && selected && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) { const l = loadDrawings(), i = l.indexOf(selected); if (i >= 0) { l.splice(i, 1); selected = null; saveDrawings(); renderDrawList(); redrawSoon(); } } });
+
+/* ---------------- stage 3: polyline, brush ---------------- */
+function finishPoly() { if (!pending || pending.pts.length < 2) { pending = null; hover = null; return; } loadDrawings().push({ type: pending.type, pts: pending.pts, color: S.color }); pending = null; hover = null; saveDrawings(); renderDrawList(); setTool('cursor'); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && pending && pending.type === 'polyline') finishPoly(); if (e.key === 'Escape' && pending) { pending = null; hover = null; redrawSoon(); } });
+let brushing = false;
+cv.addEventListener('pointerdown', (e) => { if (S.tool !== 'brush') return; const r = cv.getBoundingClientRect(), pt = noMagnetPx(e.clientX - r.left, e.clientY - r.top); if (!pt) return; brushing = true; pending = { type: 'brush', pts: [pt] }; hover = pt; try { cv.setPointerCapture(e.pointerId); } catch { } e.preventDefault(); });
+cv.addEventListener('pointermove', (e) => { if (!brushing) return; const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, lp = toPx(pending.pts.at(-1)); if (lp && Math.hypot(lp.x - x, lp.y - y) < 3) return; const pt = noMagnetPx(x, y); if (pt) { pending.pts.push(pt); hover = pt; } });
+const endBrush = () => { if (!brushing) return; brushing = false; if (pending && pending.pts.length > 1) { loadDrawings().push({ type: 'brush', pts: pending.pts, color: S.color }); saveDrawings(); renderDrawList(); } pending = null; hover = null; setTool('cursor'); };
+cv.addEventListener('pointerup', endBrush); cv.addEventListener('pointercancel', endBrush);
