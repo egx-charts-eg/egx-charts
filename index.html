@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EGX Charts | شارتات البورصة المصرية</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="top">
+  <div class="brand">EGX<span>Charts</span></div>
+  <div class="sym-box">
+    <input id="symInput" list="symList" autocomplete="off" spellcheck="false" data-i18n-ph="search">
+    <datalist id="symList"></datalist>
+  </div>
+  <div id="symName" class="sym-name"></div>
+  <div class="group" id="tfGroup"></div>
+  <div class="group" id="typeGroup"></div>
+  <select id="rangeSel" title="range"></select>
+  <label class="chk"><input type="checkbox" id="logScale"><span data-i18n="log"></span></label>
+  <div class="spacer"></div>
+  <div id="dataNote" class="note"></div>
+  <button id="langBtn" class="btn">EN</button>
+  <button id="panelBtn" class="btn primary">☰</button>
+</header>
+<main>
+  <aside id="tools"></aside>
+  <section id="chartCol">
+    <div id="legend" dir="ltr"></div>
+    <div id="chartWrap" dir="ltr">
+      <div id="chart"></div>
+      <canvas id="overlay"></canvas>
+      <div id="textPrompt" hidden></div>
+    </div>
+  </section>
+  <aside id="panel">
+    <nav id="tabs">
+      <button data-tab="ind" class="on" data-i18n="indicators"></button>
+      <button data-tab="script" data-i18n="script"></button>
+      <button data-tab="stats" data-i18n="stats"></button>
+      <button data-tab="draw" data-i18n="drawings"></button>
+      <button data-tab="scr" data-i18n="screener"></button>
+    </nav>
+    <div class="tab" id="tab-ind">
+      <div class="row"><select id="indSel"></select><button class="btn" id="indAdd" data-i18n="add"></button></div>
+      <div id="indList"></div>
+      <h4 data-i18n="compare"></h4>
+      <div class="row"><input id="cmpInput" list="symList" data-i18n-ph="cmpPh"><button class="btn" id="cmpBtn" data-i18n="apply"></button><button class="btn" id="cmpClr">×</button></div>
+      <div class="hint" data-i18n="cmpHint"></div>
+    </div>
+    <div class="tab" id="tab-script" hidden>
+      <div class="row">
+        <select id="exSel"></select>
+        <button class="btn" id="exLoad" data-i18n="load"></button>
+      </div>
+      <textarea id="code" dir="ltr" spellcheck="false"></textarea>
+      <div class="row">
+        <button class="btn primary" id="runBtn">▶ <span data-i18n="run"></span></button>
+        <button class="btn" id="saveBtn" data-i18n="save"></button>
+        <button class="btn" id="clrScript" data-i18n="clearOut"></button>
+        <label class="chk"><input type="checkbox" id="autoRun" checked><span data-i18n="autorun"></span></label>
+      </div>
+      <div class="row"><select id="savedSel"></select><button class="btn" id="savedLoad" data-i18n="load"></button><button class="btn" id="savedDel">×</button></div>
+      <pre id="out" dir="ltr"></pre>
+      <details><summary data-i18n="apiTitle"></summary><pre id="apiDoc" dir="ltr"></pre></details>
+    </div>
+    <div class="tab" id="tab-stats" hidden><div id="statsBox"></div></div>
+    <div class="tab" id="tab-draw" hidden>
+      <div id="drawList"></div>
+      <div class="row"><button class="btn" id="undoDraw" data-i18n="undo"></button><button class="btn" id="clearDraw" data-i18n="clearAll"></button></div>
+      <div class="hint" data-i18n="drawHint"></div>
+    </div>
+    <div class="tab" id="tab-scr" hidden>
+      <div class="row"><button class="btn primary" id="scrRun" data-i18n="scan"></button><span id="scrProg" class="hint"></span></div>
+      <div id="scrBox"></div>
+    </div>
+  </aside>
+</main>
+<script src="vendor/lightweight-charts.js"></script>
+<script src="ta.js"></script>
+<script src="data/symbols.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
