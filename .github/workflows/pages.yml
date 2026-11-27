@@ -27,10 +27,12 @@ jobs:
         run: |
           mkdir -p vendor tools data
           for f in lightweight-charts.js; do [ -f $f ] && mv $f vendor/; done
-          for f in build-single.mjs fetch-data.mjs universe.json; do [ -f $f ] && mv $f tools/; done
+          for f in build-single.mjs fetch-data.mjs fetch-intraday.mjs universe.json; do [ -f $f ] && mv $f tools/; done
           true
       - name: Fetch prices
         run: node tools/fetch-data.mjs
+      - name: Fetch intraday bars
+        run: node tools/fetch-intraday.mjs
       - name: Build single-file version
         run: KEEP_YEARS=6 node tools/build-single.mjs
       - name: Assemble site
