@@ -17,7 +17,7 @@ const I18N = {
     dataNote: 'بيانات يومية (EOD) – آخر تحديث', noData: 'لا توجد بيانات لهذا الرمز', unknown: 'رمز غير معروف',
     t_cursor: 'مؤشر', t_trend: 'خط اتجاه', t_ray: 'شعاع', t_hline: 'خط أفقي', t_vline: 'خط رأسي', t_rect: 'مستطيل', t_fib: 'فيبوناتشي', t_text: 'نص', t_measure: 'قياس', t_magnet: 'مغناطيس', t_color: 'اللون',
     enterText: 'اكتب النص ثم Enter', ex: 'أمثلة سكربت', savedPh: 'سكربتاتي المحفوظة', saveName: 'اسم السكربت؟', ranges: ['شهر', '3 شهور', '6 شهور', 'سنة', '3 سنين', '5 سنين', 'الكل'],
-    tf: { D: 'يوم', W: 'أسبوع', M: 'شهر', Q: 'ربع', Y: 'سنة' }, types: { candle: 'شموع', bar: 'أعمدة', line: 'خط', area: 'مساحة' },
+    noIntra: 'لا توجد بيانات داخل اليوم لهذا السهم', tf: { '15m': '15 دقيقة', '1h': 'ساعة', '2h': 'ساعتان', '4h': '4 ساعات', D: 'يوم', W: 'أسبوع', M: 'شهر', Q: 'ربع', Y: 'سنة' }, types: { candle: 'شموع', bar: 'أعمدة', line: 'خط', area: 'مساحة' },
     stat: { last: 'آخر سعر', date: 'آخر تاريخ بيانات', since: 'أول تاريخ بيانات', d1: 'يومي', w1: 'أسبوع (5 جلسات)', m1: 'شهر (21)', m3: '3 شهور (63)', m6: '6 شهور (126)', y1: 'سنة (252)', ytd: 'منذ بداية السنة', hi: 'أعلى سعر 52 أسبوع', lo: 'أقل سعر 52 أسبوع', fromHi: 'البعد عن القمة', fromLo: 'البعد عن القاع', avgVol: 'متوسط الحجم 30 يوم', turn: 'متوسط قيمة التداول 30 يوم (جنيه)', vol: 'التذبذب السنوي', dd: 'أقصى تراجع (سنة)', rsi: 'RSI(14)', atr: 'ATR(14) كنسبة', trend: 'الاتجاه', up: 'صاعد (50 > 200)', down: 'هابط (50 < 200)', ratio: 'النسبة الحالية', ratioPct: 'مكان النسبة في آخر سنة', corr: 'الارتباط (60 جلسة)', corr1: 'الارتباط (سنة)', cmp: 'مقارنة مع', note: 'مفيش نسب مالية (P/E مثلاً) في المصدر المجاني. تقدر تحسب أي نسبة سعرية بالسكربت.' },
     cols: { sym: 'الرمز', trend: 'الاتجاه' }, filters: ['الكل', 'RSI أقل من 30', 'RSI أكبر من 70', 'قريب من القمة (أقل من 5%)', 'صاعد (50>200)', 'هابط (50<200)'] },
   en: { search: 'Search symbol (COMI)', log: 'Log', indicators: 'Indicators', script: 'Script', stats: 'Stats', drawings: 'Drawings', screener: 'Screener',
@@ -28,7 +28,7 @@ const I18N = {
     dataNote: 'Daily (EOD) data, fetched', noData: 'No data for this symbol', unknown: 'Unknown symbol',
     t_cursor: 'Cursor', t_trend: 'Trend line', t_ray: 'Ray', t_hline: 'Horizontal line', t_vline: 'Vertical line', t_rect: 'Rectangle', t_fib: 'Fib retracement', t_text: 'Text', t_measure: 'Measure', t_magnet: 'Magnet', t_color: 'Color',
     enterText: 'Type text, Enter', ex: 'Script examples', savedPh: 'My saved scripts', saveName: 'Script name?', ranges: ['1M', '3M', '6M', '1Y', '3Y', '5Y', 'All'],
-    tf: { D: 'Day', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'Year' }, types: { candle: 'Candles', bar: 'Bars', line: 'Line', area: 'Area' },
+    noIntra: 'No intraday data for this symbol', tf: { '15m': '15 minutes', '1h': '1 hour', '2h': '2 hours', '4h': '4 hours', D: 'Day', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'Year' }, types: { candle: 'Candles', bar: 'Bars', line: 'Line', area: 'Area' },
     stat: { last: 'Last close', date: 'Last data date', since: 'First data date', d1: '1 day', w1: '1 week (5 sessions)', m1: '1 month (21)', m3: '3 months (63)', m6: '6 months (126)', y1: '1 year (252)', ytd: 'Year to date', hi: '52w high', lo: '52w low', fromHi: 'From high', fromLo: 'From low', avgVol: 'Avg volume 30d', turn: 'Avg turnover 30d (EGP)', vol: 'Annualised volatility', dd: 'Max drawdown (1y)', rsi: 'RSI(14)', atr: 'ATR(14) % of price', trend: 'Trend', up: 'Up (50 > 200)', down: 'Down (50 < 200)', ratio: 'Current ratio', ratioPct: 'Ratio percentile (1y)', corr: 'Correlation (60 sessions)', corr1: 'Correlation (1y)', cmp: 'Compared with', note: 'No fundamental ratios (e.g. P/E) in the free data source. Any price-based ratio can be computed in a script.' },
     cols: { sym: 'Symbol', trend: 'Trend' }, filters: ['All', 'RSI below 30', 'RSI above 70', 'Near 52w high (<5%)', 'Uptrend (50>200)', 'Downtrend (50<200)'] }
 };
@@ -44,9 +44,27 @@ function loadDaily(id) {
   if (window.EGX_DATA && window.EGX_DATA[id]) return Promise.resolve(window.EGX_DATA[id].rows.map(r => ({ time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] })));
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'data/' + id + '.js'; s.onload = () => res(loadDaily(id)); s.onerror = () => rej(new Error(T().noData + ': ' + id)); document.head.append(s); });
 }
-const days = (d) => Date.parse(d + 'T00:00:00Z') / 86400000;
+const days = (d) => typeof d === 'number' ? d / 86400 : Date.parse(d + 'T00:00:00Z') / 86400000;
+const INTRA_IDS = new Set(window.EGX_INTRA_IDS || []);
+const INTRA = ['15m', '1h', '2h', '4h'], isIntra = (tf) => INTRA.includes(tf);
+const tlabel = (t) => typeof t === 'number' ? new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ') : t;
+function loadIntra(id) {
+  id = id.toUpperCase(); window.EGX_INTRA = window.EGX_INTRA || {};
+  if (window.EGX_INTRA[id]) return Promise.resolve(window.EGX_INTRA[id]);
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'data/i/' + id + '.js'; s.onload = () => res(window.EGX_INTRA[id]); s.onerror = () => rej(new Error(T().noIntra)); document.head.append(s); });
+}
+const toBars = (rows) => rows.map(r => ({ time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] }));
+function intraBars(tf) {
+  if (!S.intra) return [];
+  if (tf === '15m') return toBars(S.intra.m);
+  const h = toBars(S.intra.h); if (tf === '1h') return h;
+  const n = tf === '2h' ? 2 : 4, out = []; let day = null, cnt = 0, cur = null;
+  for (const b of h) { const d = new Date(b.time * 1000).toISOString().slice(0, 10); if (d !== day) { day = d; cnt = 0; cur = null; } if (cnt % n === 0) { cur = { ...b }; out.push(cur); } else { cur.high = Math.max(cur.high, b.high); cur.low = Math.min(cur.low, b.low); cur.close = b.close; cur.volume += b.volume; } cnt++; }
+  return out;
+}
 function aggregate(rows, tf) {
   if (tf === 'D') return rows;
+  if (isIntra(tf)) return rows.length && typeof rows[0].time === 'number' ? rows : [];
   const key = (d) => { if (tf === 'W') { const n = days(d); const dow = new Date(n * 86400000).getUTCDay(); return n - dow; } if (tf === 'M') return d.slice(0, 7); if (tf === 'Q') return d.slice(0, 4) + 'Q' + Math.floor((+d.slice(5, 7) - 1) / 3); return d.slice(0, 4); };
   const out = []; let k = null, cur = null;
   for (const r of rows) { const kk = key(r.time); if (kk !== k) { k = kk; cur = { time: r.time, open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume }; out.push(cur); } else { cur.high = Math.max(cur.high, r.high); cur.low = Math.min(cur.low, r.low); cur.close = r.close; cur.volume += r.volume; } }
@@ -148,7 +166,7 @@ function updateIndValues(time) {
 /* ---------------- legend / crosshair ---------------- */
 function legendFor(i) {
   const b = S.bars[i]; if (!b) return; const p = S.bars[i - 1], c = p ? b.close / p.close - 1 : null;
-  $('#legend').innerHTML = `<b>${S.sym}</b> ${b.time} &nbsp; O <b>${fmt(b.open)}</b> H <b>${fmt(b.high)}</b> L <b>${fmt(b.low)}</b> C <b class="${cls(c)}">${fmt(b.close)}</b> <span class="${cls(c)}">${pct(c)}</span> &nbsp; Vol <b>${fmt(b.volume, 0)}</b>`;
+  $('#legend').innerHTML = `<b>${S.sym}</b> ${tlabel(b.time)} &nbsp; O <b>${fmt(b.open)}</b> H <b>${fmt(b.high)}</b> L <b>${fmt(b.low)}</b> C <b class="${cls(c)}">${fmt(b.close)}</b> <span class="${cls(c)}">${pct(c)}</span> &nbsp; Vol <b>${fmt(b.volume, 0)}</b>`;
 }
 chart.subscribeCrosshairMove((p) => { const t = p.time; const i = t != null ? S.idxByTime[t] : S.bars.length - 1; if (i != null) { legendFor(i); updateIndValues(t ?? S.bars.at(-1).time); } });
 
@@ -165,7 +183,8 @@ function applyRange() {
 async function setSymbol(id, keepRange) {
   id = id.toUpperCase().trim();
   if (!symMap[id]) { $('#symInput').value = S.sym; return; }
-  try { S.daily = await loadDaily(id); } catch (e) { alert(e.message); return; }
+  try { S.daily = await loadDaily(id); } catch (e) { if (!isIntra(S.tf)) { alert(e.message); return; } S.daily = []; }
+  S.intra = null; if (isIntra(S.tf)) { try { S.intra = await loadIntra(id); } catch (e) { alert(e.message); } }
   S.sym = id; store.set('sym', id); $('#symInput').value = id;
   setName();
   document.title = id + ' | EGX Charts';
@@ -173,14 +192,15 @@ async function setSymbol(id, keepRange) {
 }
 function setName() { const m = symMap[S.sym]; if (m) $('#symName').textContent = (lang === 'ar' ? m.ar : m.en) + ' · ' + (lang === 'ar' ? m.secAr : m.secEn) + (m.src === 'hourly' ? (lang === 'ar' ? ' · (يومي مشتق من بيانات الساعة)' : ' · (daily derived from hourly)') : '') + (!m.src ? (lang === 'ar' ? ' · لا توجد بيانات أسعار' : ' · no price data') : ''); }
 function refreshBars() {
-  S.bars = aggregate(S.daily, S.tf); S.idxByTime = {}; S.bars.forEach((b, i) => S.idxByTime[b.time] = i);
+  chart.applyOptions({ timeScale: { timeVisible: isIntra(S.tf), secondsVisible: false } });
+  S.bars = isIntra(S.tf) ? intraBars(S.tf) : aggregate(S.daily, S.tf); S.idxByTime = {}; S.bars.forEach((b, i) => S.idxByTime[b.time] = i);
   makeMain(); rebuildExtras(); legendFor(S.bars.length - 1); updateIndValues(S.bars.at(-1).time);
 }
 
 /* ---------------- UI wiring ---------------- */
 function buildTop() {
   const tf = $('#tfGroup'); tf.innerHTML = '';
-  ['D', 'W', 'M', 'Q', 'Y'].forEach(k => tf.append(el('button', { class: S.tf === k ? 'on' : '', title: T().tf[k], onclick: () => { S.tf = k; store.set('tf', k); buildTop(); refreshBars(); applyRange(); renderDrawList(); redrawSoon(); } }, k)));
+  ['15m', '1h', '2h', '4h', 'D', 'W', 'M', 'Q', 'Y'].forEach(k => tf.append(el('button', { class: S.tf === k ? 'on' : '', title: T().tf[k], onclick: async () => { if (isIntra(k) && !INTRA_IDS.has(S.sym)) { alert(T().noIntra); return; } S.tf = k; store.set('tf', k); S.intra = isIntra(k) ? await loadIntra(S.sym).catch(() => null) : null; buildTop(); refreshBars(); applyRange(); loadDrawings(); renderDrawList(); redrawSoon(); } }, k)));
   const ty = $('#typeGroup'); ty.innerHTML = '';
   [['candle', '🕯'], ['bar', '▥'], ['line', '📈'], ['area', '◭']].forEach(([k, ic]) => ty.append(el('button', { class: S.type === k ? 'on' : '', title: T().types[k], onclick: () => { S.type = k; store.set('type', k); buildTop(); makeMain(); rebuildExtras(); redrawSoon(); } }, ic)));
   const rs = $('#rangeSel'); rs.innerHTML = ''; T().ranges.forEach((r, i) => rs.append(el('option', { value: i }, r))); rs.value = S.range;
@@ -256,7 +276,7 @@ function renderScreener() {
 /* ---------------- drawings ---------------- */
 const cv = $('#overlay'), cx = cv.getContext('2d'), wrap = $('#chartWrap');
 let drawings = {}, pending = null, hover = null, selected = null, lastSig = '';
-const dkey = () => 'draw.' + S.sym;
+const dkey = () => 'draw.' + S.sym + (isIntra(S.tf) ? '.i' : '');
 const loadDrawings = () => { if (!drawings[S.sym]) drawings[S.sym] = store.get(dkey(), []); return drawings[S.sym]; };
 const saveDrawings = () => store.set(dkey(), drawings[S.sym]);
 const TOOLS = [['cursor', '↖'], ['trend', '╱'], ['ray', '↗'], ['hline', '─'], ['vline', '│'], ['rect', '▭'], ['fib', '≡'], ['text', 'T'], ['measure', '↔']];

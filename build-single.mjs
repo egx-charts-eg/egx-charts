@@ -4,16 +4,16 @@ const r = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const KEEP = Number(process.env.KEEP_YEARS || 6); const cut = new Date(Date.now() - KEEP * 365.25 * 864e5).toISOString().slice(0, 10);
 const data = {};
 for (const f of fs.readdirSync(new URL('../data/', import.meta.url))) {
-  if (f === 'symbols.js') continue;
+  if (!/^[A-Z0-9]+\.js$/.test(f)) continue;
   const m = r('data/' + f).match(/window\.EGX_DATA\[("[^"]+")\]=(.*);$/s); const o = JSON.parse(m[2]); if (KEEP > 0) o.rows = o.rows.filter(x => x[0] >= cut); data[JSON.parse(m[1])] = o;
 }
 const blob = zlib.gzipSync(Buffer.from(JSON.stringify(data)), { level: 9 }).toString('base64');
 const safe = (s) => s.replace(/<\/script/gi, '<\\/script');
 const html = r('index.html')
   .replace('<link rel="stylesheet" href="style.css">', '<style>' + r('style.css') + '</style>')
-  .replace(/<script src="vendor\/lightweight-charts.js"><\/script>\s*<script src="ta.js"><\/script>\s*<script src="data\/symbols.js"><\/script>\s*<script src="app.js"><\/script>/,
+  .replace(/<script src="vendor\/lightweight-charts.js"><\/script>\s*<script src="ta.js"><\/script>\s*<script src="data\/symbols.js"><\/script>\s*<script src="data\/intra.js"><\/script>\s*<script src="app.js"><\/script>/,
     () => '<div id="boot" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0e1116;color:#8593a3;z-index:99;font:16px system-ui">Loading EGX data…</div>\n' +
-      '<script>' + safe(r('vendor/lightweight-charts.js')) + '</script>\n<script>' + safe(r('ta.js')) + '</script>\n<script>' + safe(r('data/symbols.js')) + '</script>\n' +
+      '<script>' + safe(r('vendor/lightweight-charts.js')) + '</script>\n<script>' + safe(r('ta.js')) + '</script>\n<script>' + safe(r('data/symbols.js')) + '</script>\n<script>window.EGX_INTRA_IDS=[];</script>\n' +
       '<script type="text/plain" id="appsrc">' + safe(r('app.js')) + '</script>\n' +
       '<script type="text/plain" id="blob">' + blob + '</script>\n' +
       '<script>(async()=>{try{const b=atob(document.getElementById("blob").textContent.trim());const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);' +
