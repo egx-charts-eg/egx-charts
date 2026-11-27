@@ -289,16 +289,98 @@ let drawings = {}, pending = null, hover = null, selected = null, lastSig = '';
 const dkey = () => 'draw.' + S.sym + (isIntra(S.tf) ? '.i' : '');
 const loadDrawings = () => { if (!drawings[S.sym]) drawings[S.sym] = store.get(dkey(), []); return drawings[S.sym]; };
 const saveDrawings = () => store.set(dkey(), drawings[S.sym]);
-const TOOLS = [['cursor', '↖'], ['trend', '╱'], ['ray', '↗'], ['hline', '─'], ['vline', '│'], ['rect', '▭'], ['fib', '≡'], ['text', 'T'], ['measure', '↔'], ['vp', '▤']];
-const NEED = { trend: 2, ray: 2, hline: 1, vline: 1, rect: 2, fib: 2, text: 1, measure: 2, vp: 2 };
+/* ---------------- drawing tool groups ---------------- */
+const TG = [
+  { id: 'cur', items: [['cursor', '↖', 1, 'مؤشر', 'Cursor'], ['eraser', '⌫', 0, 'ممحاة (اضغط على رسم لحذفه)', 'Eraser (tap a drawing to delete)']] },
+  { id: 'lines', items: [['trend', '╱', 2, 'خط اتجاه', 'Trend line'], ['ray', '↗', 2, 'شعاع', 'Ray'], ['info', 'ⓘ', 2, 'خط معلومات', 'Info line'], ['extended', '⟷', 2, 'خط ممتد', 'Extended line'], ['hline', '─', 1, 'خط أفقي', 'Horizontal line'], ['hray', '⇥', 1, 'شعاع أفقي', 'Horizontal ray'], ['vline', '│', 1, 'خط رأسي', 'Vertical line'], ['cross', '✚', 1, 'خط متقاطع', 'Cross line'], ['arrow', '➚', 2, 'سهم', 'Arrow']] },
+  { id: 'chan', items: [['channel', '⫽', 3, 'قناة موازية', 'Parallel channel'], ['regr', '≈', 2, 'اتجاه الانحدار', 'Regression trend'], ['flat', '⎺', 3, 'قمة/قاع مسطح', 'Flat top/bottom']] },
+  { id: 'fib', items: [['fib', '≡', 2, 'فيبوناتشي ارتداد', 'Fib retracement'], ['fibext', '≣', 3, 'فيبوناتشي امتداد', 'Trend-based fib extension'], ['fibtime', '⦙', 2, 'مناطق فيبو الزمنية', 'Fib time zones'], ['fibfan', '◣', 2, 'مروحة فيبوناتشي', 'Fib speed fan'], ['fibcirc', '◎', 2, 'دوائر فيبوناتشي', 'Fib circles'], ['gann', '▨', 2, 'مروحة جان', 'Gann fan']] },
+  { id: 'pat', items: [['abcd', 'Ꭺ', 4, 'نموذج ABCD', 'ABCD pattern'], ['xabcd', '✕', 5, 'نموذج XABCD', 'XABCD pattern'], ['hs', '⩔', 7, 'رأس وكتفين', 'Head and shoulders']] },
+  { id: 'fc', items: [['long', '⬆', 3, 'مركز شراء (دخول، هدف، وقف)', 'Long position (entry, target, stop)'], ['short', '⬇', 3, 'مركز بيع (دخول، هدف، وقف)', 'Short position (entry, target, stop)'], ['measure', '↔', 2, 'قياس', 'Measure'], ['prange', '⇳', 2, 'نطاق سعري', 'Price range'], ['drange', '⇔', 2, 'نطاق زمني', 'Date range'], ['pdrange', '⬚', 2, 'نطاق سعر وزمن', 'Date and price range'], ['vp', '▤', 2, 'بروفايل الحجم (نطاق ثابت)', 'Volume Profile (Fixed Range)']] },
+  { id: 'shape', items: [['rect', '▭', 2, 'مستطيل', 'Rectangle'], ['ellipse', '⬭', 2, 'قطع ناقص', 'Ellipse'], ['triangle', '△', 3, 'مثلث', 'Triangle']] },
+  { id: 'note', items: [['text', 'T', 1, 'نص', 'Text'], ['plabel', '🏷', 1, 'علامة سعر', 'Price label'], ['arrowup', '▲', 1, 'سهم لأعلى', 'Arrow marker up'], ['arrowdn', '▼', 1, 'سهم لأسفل', 'Arrow marker down']] },
+];
+const NEED = {}, TLAB = {}; TG.forEach(g => g.items.forEach(([k, , n, ar, en]) => { NEED[k] = n; TLAB[k] = [ar, en]; }));
+const toolLabel = (k) => (TLAB[k] || [k, k])[lang === 'ar' ? 0 : 1];
+const grpLast = store.get('grpLast', {});
+function closeFly() { document.querySelector('#fly')?.remove(); }
 function buildTools() {
-  const t = $('#tools'); t.innerHTML = '';
-  TOOLS.forEach(([k, ic]) => t.append(el('button', { class: S.tool === k ? 'on' : '', title: T()['t_' + k], onclick: () => setTool(k) }, ic)));
+  const t = $('#tools'); t.innerHTML = ''; closeFly();
+  TG.forEach((g) => {
+    const cur = g.items.find(i => i[0] === (g.items.some(i => i[0] === S.tool) ? S.tool : grpLast[g.id])) || g.items[0];
+    const on = g.items.some(i => i[0] === S.tool);
+    const b = el('button', { class: (on ? 'on ' : '') + (g.items.length > 1 ? 'grp' : ''), title: toolLabel(cur[0]), 'data-g': g.id }, cur[1]);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (g.items.length === 1) { grpLast[g.id] = cur[0]; setTool(cur[0]); return; }
+      if (document.querySelector('#fly')?.dataset.g === g.id) { closeFly(); return; }
+      closeFly();
+      const r = b.getBoundingClientRect(), horiz = getComputedStyle(t).flexDirection === 'row';
+      const fly = el('div', { id: 'fly', 'data-g': g.id }, ...g.items.map(it => el('button', { class: it[0] === S.tool ? 'on' : '', onclick: (ev) => { ev.stopPropagation(); grpLast[g.id] = it[0]; store.set('grpLast', grpLast); setTool(it[0]); } }, el('span', { class: 'ic' }, it[1]), el('span', {}, toolLabel(it[0])))));
+      document.body.append(fly);
+      const fw = fly.offsetWidth, fh = fly.offsetHeight;
+      let x = horiz ? Math.min(r.left, innerWidth - fw - 4) : r.right + 4, y = horiz ? r.bottom + 4 : Math.min(r.top, innerHeight - fh - 4);
+      fly.style.left = Math.max(4, x) + 'px'; fly.style.top = Math.max(4, y) + 'px';
+    };
+    t.append(b);
+  });
   t.append(el('hr'), el('button', { class: S.magnet ? 'on' : '', title: T().t_magnet, onclick: () => { S.magnet = !S.magnet; store.set('magnet', S.magnet); buildTools(); } }, '🧲'));
   const c = el('input', { type: 'color', value: S.color, title: T().t_color, style: 'width:30px;height:26px;padding:0;border:0;background:none' }); c.oninput = (e) => { S.color = e.target.value; store.set('dcolor', S.color); };
-  t.append(c);
+  t.append(c, el('button', { title: L2('مسح كل الرسومات', 'Remove all drawings'), onclick: () => { if (loadDrawings().length && confirm(L2('مسح كل الرسومات لهذا السهم؟', 'Remove all drawings for this symbol?'))) { drawings[S.sym] = []; saveDrawings(); selected = null; renderDrawList(); redrawSoon(); } } }, '🗑'));
 }
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#fly') && !e.target.closest('#tools')) closeFly(); });
 function setTool(k) { S.tool = k; pending = null; hover = null; cv.classList.toggle('active', k !== 'cursor'); buildTools(); redrawSoon(); }
+
+function drawMore(d, P, W, H, line, ext) {
+  const ty = d.type, D = d.pts, p0 = P[0], p1 = P[1], p2 = P[2], color = d.color || '#f5c542';
+  const tag = (txt, x, y, bg) => { cx.save(); cx.font = '11px system-ui'; const w = cx.measureText(txt).width + 8; cx.globalAlpha = .85; cx.fillStyle = bg || '#0e1116'; cx.fillRect(x, y - 13, w, 17); cx.globalAlpha = 1; cx.fillStyle = color; cx.fillText(txt, x + 4, y); cx.restore(); };
+  const poly = (arr, fillA) => { cx.beginPath(); arr.forEach((q, i) => i ? cx.lineTo(q.x, q.y) : cx.moveTo(q.x, q.y)); if (fillA) { cx.closePath(); cx.globalAlpha = fillA; cx.fill(); cx.globalAlpha = 1; } cx.stroke(); };
+  const X = (i) => chart.timeScale().logicalToCoordinate(i), Y = (p) => main.priceToCoordinate(p);
+  const info = (a, b, A, B) => `${pct(B.p / A.p - 1)} (${fmt(B.p - A.p)})  ${findIdx(B.d) - findIdx(A.d)} bars`;
+  if (ty === 'info') { line(p0, p1); tag(info(0, 0, D[0], D[1]), p1.x + 6, p1.y - 6); }
+  else if (ty === 'extended') line(ext(p1, p0), ext(p0, p1));
+  else if (ty === 'hray') { line({ x: p0.x, y: p0.y }, { x: W, y: p0.y }); cx.fillText(fmt(D[0].p), p0.x + 4, p0.y - 4); }
+  else if (ty === 'cross') { line({ x: 0, y: p0.y }, { x: W, y: p0.y }); line({ x: p0.x, y: 0 }, { x: p0.x, y: H }); }
+  else if (ty === 'arrow') { line(p0, p1); const a = Math.atan2(p1.y - p0.y, p1.x - p0.x); poly([{ x: p1.x - 12 * Math.cos(a - .4), y: p1.y - 12 * Math.sin(a - .4) }, p1, { x: p1.x - 12 * Math.cos(a + .4), y: p1.y - 12 * Math.sin(a + .4) }], 0); }
+  else if (ty === 'channel') { const s = (p1.y - p0.y) / ((p1.x - p0.x) || 1), v = p2.y - (p0.y + s * (p2.x - p0.x)); const a = { x: p0.x, y: p0.y + v }, b = { x: p1.x, y: p1.y + v }; cx.globalAlpha = .1; cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y); cx.lineTo(b.x, b.y); cx.lineTo(a.x, a.y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line(p0, p1); line(a, b); cx.setLineDash([4, 4]); line({ x: p0.x, y: p0.y + v / 2 }, { x: p1.x, y: p1.y + v / 2 }); cx.setLineDash([]); }
+  else if (ty === 'flat') { line(p0, p1); const y = p2.y; cx.globalAlpha = .1; cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y); cx.lineTo(p1.x, y); cx.lineTo(p0.x, y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line({ x: p0.x, y }, { x: p1.x, y }); }
+  else if (ty === 'regr') {
+    const a = findIdx(D[0].d), b = findIdx(D[1].d), i1 = Math.min(a, b), i2 = Math.max(a, b); if (i2 - i1 < 2) return; const n = i2 - i1 + 1; let sx = 0, sy = 0, sxy = 0, sxx = 0; for (let i = i1; i <= i2; i++) { const x = i - i1, y = S.bars[i].close; sx += x; sy += y; sxy += x * y; sxx += x * x; }
+    const sl = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), ic = (sy - sl * sx) / n; let ss = 0; for (let i = i1; i <= i2; i++) { const e = S.bars[i].close - (ic + sl * (i - i1)); ss += e * e; } const sd = Math.sqrt(ss / n);
+    const seg = (off) => { const ya = Y(ic + off), yb = Y(ic + sl * (n - 1) + off), xa = X(i1), xb = X(i2); if (ya == null || yb == null || xa == null || xb == null) return null; return [{ x: xa, y: ya }, { x: xb, y: yb }]; };
+    const c = seg(0), u = seg(2 * sd), l = seg(-2 * sd); if (!c || !u || !l) return; cx.globalAlpha = .08; cx.beginPath(); cx.moveTo(u[0].x, u[0].y); cx.lineTo(u[1].x, u[1].y); cx.lineTo(l[1].x, l[1].y); cx.lineTo(l[0].x, l[0].y); cx.closePath(); cx.fill(); cx.globalAlpha = 1; line(c[0], c[1]); line(u[0], u[1]); line(l[0], l[1]);
+  }
+  else if (ty === 'fibext') { const A = D[0], B = D[1], C = D[2], xr = Math.max(p0.x, p1.x, p2.x) + 80; cx.setLineDash([4, 4]); line(p0, p1); line(p1, p2); cx.setLineDash([]); [0, .618, 1, 1.618, 2.618, 4.236].forEach(l => { const pr = C.p + (B.p - A.p) * l, y = Y(pr); if (y == null) return; cx.globalAlpha = .8; line({ x: p2.x, y }, { x: xr, y }); cx.globalAlpha = 1; cx.fillText(l + '  ' + fmt(pr), xr + 4, y + 4); }); }
+  else if (ty === 'fibtime') { const i0 = findIdx(D[0].d), st = Math.max(1, findIdx(D[1].d) - i0); [0, 1, 2, 3, 5, 8, 13, 21, 34, 55].forEach(f => { const x = X(i0 + f * st); if (x == null) return; cx.globalAlpha = .6; line({ x, y: 0 }, { x, y: H }); cx.globalAlpha = 1; cx.fillText(String(f), x + 3, 12); }); }
+  else if (ty === 'fibfan') { line(p0, ext(p0, p1)); [.382, .5, .618].forEach(l => { const q = { x: p1.x, y: p0.y + (p1.y - p0.y) * l }; cx.globalAlpha = .75; line(p0, ext(p0, q)); cx.globalAlpha = 1; cx.fillText(String(l), q.x + 4, q.y); }); line(p0, { x: p1.x, y: p0.y }); }
+  else if (ty === 'fibcirc') { const r = Math.hypot(p1.x - p0.x, p1.y - p0.y); [.382, .5, .618, 1, 1.618].forEach(l => { cx.globalAlpha = .7; cx.beginPath(); cx.arc(p0.x, p0.y, r * l, 0, 7); cx.stroke(); cx.globalAlpha = 1; }); line(p0, p1); }
+  else if (ty === 'gann') { [[1 / 8, '8x1'], [1 / 4, '4x1'], [1 / 3, '3x1'], [1 / 2, '2x1'], [1, '1x1'], [2, '1x2'], [3, '1x3'], [4, '1x4'], [8, '1x8']].forEach(([r, nm]) => { const q = { x: p1.x, y: p0.y + (p1.y - p0.y) * r }; cx.globalAlpha = r === 1 ? 1 : .6; line(p0, ext(p0, q)); cx.globalAlpha = 1; if (q.x === q.x) cx.fillText(nm, q.x + 3, Math.max(10, Math.min(H - 4, q.y))); }); }
+  else if (ty === 'abcd' || ty === 'xabcd' || ty === 'hs') {
+    const lab = ty === 'abcd' ? ['A', 'B', 'C', 'D'] : ty === 'xabcd' ? ['X', 'A', 'B', 'C', 'D'] : ['', 'LS', '', 'H', '', 'RS', ''];
+    poly(P, ty === 'hs' ? 0 : 0); cx.setLineDash([4, 4]); if (ty === 'abcd') { line(P[0], P[2]); line(P[1], P[3]); } if (ty === 'xabcd') { line(P[0], P[2]); line(P[1], P[3]); line(P[2], P[4]); line(P[0], P[4]); } if (ty === 'hs' && P.length > 4) { line(P[2], P[4]); } cx.setLineDash([]);
+    P.forEach((q, i) => { if (lab[i]) cx.fillText(lab[i], q.x + 4, q.y - 6); });
+  }
+  else if (ty === 'long' || ty === 'short') {
+    const E = D[0].p, TP = D[1].p, SL = D[2].p, yE = Y(E), yT = Y(TP), yS = Y(SL); if (yE == null || yT == null || yS == null) return;
+    const xa = p0.x; let xb = p1.x; if (Math.abs(xb - xa) < 40) xb = xa + 120; const x1 = Math.min(xa, xb), w = Math.abs(xb - xa);
+    cx.globalAlpha = .18; cx.fillStyle = '#26a69a'; cx.fillRect(x1, Math.min(yE, yT), w, Math.abs(yT - yE)); cx.fillStyle = '#ef5350'; cx.fillRect(x1, Math.min(yE, yS), w, Math.abs(yS - yE)); cx.globalAlpha = 1; cx.fillStyle = color;
+    line({ x: x1, y: yE }, { x: x1 + w, y: yE }); const rr = Math.abs(SL - E) > 0 ? Math.abs(TP - E) / Math.abs(SL - E) : 0;
+    tag(L2(ty === 'long' ? 'شراء' : 'بيع', ty === 'long' ? 'Long' : 'Short') + '  R:R ' + rr.toFixed(2), x1 + 4, Math.min(yE, yT, yS) - 6);
+    tag(L2('هدف ', 'Target ') + fmt(TP) + ' (' + pct(TP / E - 1) + ')', x1 + 4, yT + (yT < yE ? 14 : -4), 'rgba(38,166,154,.4)'); tag(L2('وقف ', 'Stop ') + fmt(SL) + ' (' + pct(SL / E - 1) + ')', x1 + 4, yS + (yS < yE ? 14 : -4), 'rgba(239,83,80,.4)');
+  }
+  else if (ty === 'prange' || ty === 'drange' || ty === 'pdrange') {
+    const x1 = Math.min(p0.x, p1.x), x2 = Math.max(p0.x, p1.x), y1 = Math.min(p0.y, p1.y), y2 = Math.max(p0.y, p1.y), bars = Math.abs(findIdx(D[1].d) - findIdx(D[0].d));
+    cx.globalAlpha = .12; if (ty === 'pdrange') cx.fillRect(x1, y1, x2 - x1, y2 - y1); else if (ty === 'prange') cx.fillRect(x1, y1, Math.max(x2 - x1, 60), y2 - y1); else cx.fillRect(x1, 0, x2 - x1, H); cx.globalAlpha = 1;
+    if (ty !== 'drange') { line({ x: x1, y: y1 }, { x: Math.max(x2, x1 + 60), y: y1 }); line({ x: x1, y: y2 }, { x: Math.max(x2, x1 + 60), y: y2 }); const mx = (x1 + Math.max(x2, x1 + 60)) / 2; line({ x: mx, y: y1 }, { x: mx, y: y2 }); }
+    if (ty !== 'prange') { line({ x: x1, y: 0 }, { x: x1, y: H }); line({ x: x2, y: 0 }, { x: x2, y: H }); line({ x: x1, y: p0.y }, { x: x2, y: p0.y }); }
+    const dp = D[1].p - D[0].p; tag((ty === 'drange' ? '' : pct(D[1].p / D[0].p - 1) + ' (' + fmt(dp) + ')  ') + (ty === 'prange' ? '' : bars + ' bars'), x2 + 6, p1.y - 6);
+  }
+  else if (ty === 'ellipse') { const cxx = (p0.x + p1.x) / 2, cyy = (p0.y + p1.y) / 2, rx = Math.abs(p1.x - p0.x) / 2, ry = Math.abs(p1.y - p0.y) / 2; cx.beginPath(); cx.ellipse(cxx, cyy, Math.max(1, rx), Math.max(1, ry), 0, 0, 7); cx.globalAlpha = .12; cx.fill(); cx.globalAlpha = 1; cx.stroke(); }
+  else if (ty === 'triangle') { poly(P.length >= 3 ? [P[0], P[1], P[2], P[0]] : P, .12); }
+  else if (ty === 'plabel') { const t = fmt(D[0].p); cx.font = 'bold 12px system-ui'; const w = cx.measureText(t).width + 10; cx.fillRect(p0.x, p0.y - 10, w, 20); cx.fillStyle = '#0e1116'; cx.fillText(t, p0.x + 5, p0.y + 4); cx.fillStyle = color; cx.beginPath(); cx.arc(p0.x, p0.y, 3, 0, 7); cx.fill(); }
+  else if (ty === 'arrowup') { poly([{ x: p0.x, y: p0.y }, { x: p0.x - 9, y: p0.y + 16 }, { x: p0.x + 9, y: p0.y + 16 }, { x: p0.x, y: p0.y }], .9); }
+  else if (ty === 'arrowdn') { poly([{ x: p0.x, y: p0.y }, { x: p0.x - 9, y: p0.y - 16 }, { x: p0.x + 9, y: p0.y - 16 }, { x: p0.x, y: p0.y }], .9); }
+}
 function findIdx(d) { const b = S.bars; let lo = 0, hi = b.length - 1, r = 0; while (lo <= hi) { const m = (lo + hi) >> 1; if (b[m].time <= d) { r = m; lo = m + 1; } else hi = m - 1; } return r; }
 function toPx(pt) { const x = chart.timeScale().logicalToCoordinate(findIdx(pt.d)), y = main.priceToCoordinate(pt.p); return x == null || y == null ? null : { x, y }; }
 function plotSize() { let w = wrap.clientWidth - chart.priceScale('right').width(); let h; try { h = chart.panes()[0].getHeight(); } catch { h = wrap.clientHeight - 26; } return { w, h }; }
@@ -360,19 +442,21 @@ function drawOne(d, W, H, isSel) {
   else if (d.type === 'text') { cx.font = 'bold 13px system-ui'; cx.fillText(d.text || '', pts[0].x, pts[0].y); }
   else if (d.type === 'measure') { cx.setLineDash([5, 4]); line(pts[0], pts[1]); cx.setLineDash([]); const [a, b] = d.pts, nb = findIdx(b.d) - findIdx(a.d), ch = b.p / a.p - 1; const txt = `${pct(ch)}  (${fmt(b.p - a.p)})  ${nb} bars`; cx.fillStyle = '#0e1116'; const tw = cx.measureText(txt).width + 10; cx.fillRect(pts[1].x + 6, pts[1].y - 18, tw, 20); cx.fillStyle = color; cx.fillText(txt, pts[1].x + 11, pts[1].y - 4); }
   else if (d.type === 'vp') { drawVP(d, pts, W, H, isSel); }
+  else drawMore(d, pts, W, H, line, ext);
   if (isSel) pts.forEach(p => { cx.beginPath(); cx.arc(p.x, p.y, 4, 0, 7); cx.fillStyle = '#fff'; cx.fill(); cx.strokeStyle = color; cx.stroke(); });
 }
 function redraw() {
   if (!main) return; const { W, H } = fitCanvas(); cx.clearRect(0, 0, W, H);
   loadDrawings().forEach(d => drawOne(d, W, H, d === selected));
   drawAutoVP(W, H);
-  if (pending && hover) drawOne({ type: pending.type, color: S.color, pts: [pending.pts[0], hover] }, W, H, false);
+  if (pending && hover) { const pp = pending.pts.concat([hover]); while (pp.length < NEED[pending.type]) pp.push(hover); drawOne({ type: pending.type, color: S.color, pts: pp }, W, H, false); }
 }
 const redrawSoon = () => { lastSig = ''; };
 function loop() { try { placeLegends(); if (main && S.bars.length) { const r = chart.timeScale().getVisibleLogicalRange(), sig = [r && r.from.toFixed(2), r && r.to.toFixed(2), main.priceToCoordinate(1), main.priceToCoordinate(1000), wrap.clientWidth, wrap.clientHeight, S.sym, S.tf, drawings[S.sym]?.length, selected && 1, hover && hover.d + hover.p, S.type, chart.priceScale('right').width(), S.inds.map(x => x.id + (x.p || []) + ((x.o && x.o.hidden) ? 'h' : '')).join()].join('|'); if (sig !== lastSig) { lastSig = sig; redraw(); } } } catch (e) { } requestAnimationFrame(loop); }
 cv.addEventListener('pointermove', (e) => { if (!pending) return; const r = cv.getBoundingClientRect(); hover = fromPx(e.clientX - r.left, e.clientY - r.top); });
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), pt = fromPx(e.clientX - r.left, e.clientY - r.top); if (!pt) return;
+  if (S.tool === 'eraser') { const l = loadDrawings(), q = { x: e.clientX - r.left, y: e.clientY - r.top }; for (let i = l.length - 1; i >= 0; i--) if (hit(l[i], q)) { l.splice(i, 1); selected = null; saveDrawings(); renderDrawList(); redrawSoon(); break; } return; }
   if (!pending) pending = { type: S.tool, pts: [pt] }; else pending.pts.push(pt);
   if (pending.pts.length >= NEED[pending.type]) { const d = { type: pending.type, pts: pending.pts, color: S.color }; pending = null; hover = null; if (d.type === 'text') { askText(e.clientX - r.left, e.clientY - r.top, (t) => { if (t) { d.text = t; loadDrawings().push(d); saveDrawings(); renderDrawList(); } redrawSoon(); }); } else { loadDrawings().push(d); saveDrawings(); renderDrawList(); } setTool('cursor'); }
 });
@@ -380,6 +464,9 @@ function askText(x, y, cb) { const box = $('#textPrompt'); box.hidden = false; b
 function distSeg(p, a, b) { const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy; let t = L ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)); }
 function hit(d, p) {
   const q = d.pts.map(toPx); if (q.some(x => !x)) return false;
+  if (d.type === 'hray') return Math.abs(p.y - q[0].y) < 6 && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < 6 || Math.abs(p.x - q[0].x) < 6;
+  if (d.type === 'plabel' || d.type === 'arrowup' || d.type === 'arrowdn') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 20;
+  if (q.length < 2 && !['hline', 'vline', 'text'].includes(d.type)) return false;
   if (d.type === 'trend' || d.type === 'measure') return distSeg(p, q[0], q[1]) < 6;
   if (d.type === 'ray') { const dx = q[1].x - q[0].x, dy = q[1].y - q[0].y, L = Math.hypot(dx, dy) || 1; return distSeg(p, q[0], { x: q[0].x + dx / L * 5000, y: q[0].y + dy / L * 5000 }) < 6; }
   if (d.type === 'hline') return Math.abs(p.y - q[0].y) < 6; if (d.type === 'vline') return Math.abs(p.x - q[0].x) < 6;
@@ -387,13 +474,19 @@ function hit(d, p) {
   const x1 = Math.min(q[0].x, q[1].x), x2 = Math.max(q[0].x, q[1].x), y1 = Math.min(q[0].y, q[1].y), y2 = Math.max(q[0].y, q[1].y);
   if (d.type === 'rect') return (p.x >= x1 - 5 && p.x <= x2 + 5 && p.y >= y1 - 5 && p.y <= y2 + 5) && (Math.abs(p.x - x1) < 6 || Math.abs(p.x - x2) < 6 || Math.abs(p.y - y1) < 6 || Math.abs(p.y - y2) < 6);
   if (d.type === 'fib') return p.x >= x1 - 5 && p.x <= x2 + 60 && p.y >= y1 - 5 && p.y <= y2 + 5;
-  return false;
+  const bx1 = Math.min(...q.map(z => z.x)), bx2 = Math.max(...q.map(z => z.x)), by1 = Math.min(...q.map(z => z.y)), by2 = Math.max(...q.map(z => z.y));
+  if (d.type === 'hray') return Math.abs(p.y - q[0].y) < 6 && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < 6 || Math.abs(p.x - q[0].x) < 6;
+  if (d.type === 'extended' || d.type === 'info' || d.type === 'arrow') return distSeg(p, q[0], q[1]) < 6 || (d.type === 'extended' && distSeg(p, q[0], { x: q[0].x + (q[0].x - q[1].x) * 1000, y: q[0].y + (q[0].y - q[1].y) * 1000 }) < 6);
+  if (['abcd', 'xabcd', 'hs'].includes(d.type)) { for (let i = 0; i < q.length - 1; i++) if (distSeg(p, q[i], q[i + 1]) < 7) return true; return false; }
+  if (d.type === 'plabel' || d.type === 'arrowup' || d.type === 'arrowdn') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 20;
+  if (['fibtime', 'drange'].includes(d.type)) return Math.abs(p.x - q[0].x) < 6 || Math.abs(p.x - q[1].x) < 6;
+  return p.x >= bx1 - 6 && p.x <= bx2 + 90 && p.y >= by1 - 6 && p.y <= by2 + 6;
 }
 chart.subscribeClick((param) => { if (S.tool !== 'cursor' || !param.point) return; selected = null; const l = loadDrawings(); for (let i = l.length - 1; i >= 0; i--) if (hit(l[i], param.point)) { selected = l[i]; break; } redrawSoon(); renderDrawList(); });
 document.addEventListener('keydown', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; if (e.key === 'Escape') { setTool('cursor'); selected = null; redrawSoon(); } if ((e.key === 'Delete' || e.key === 'Backspace') && selected) { const l = loadDrawings(); l.splice(l.indexOf(selected), 1); selected = null; saveDrawings(); renderDrawList(); redrawSoon(); } });
 function renderDrawList() {
   const box = $('#drawList'); box.innerHTML = ''; const l = loadDrawings();
-  l.forEach((d, i) => box.append(el('div', { class: 'dr', style: d === selected ? 'background:var(--bg3)' : '' }, el('span', { style: 'color:' + d.color }, '● ' + T()['t_' + d.type] + ' · ' + d.pts[0].d + (d.text ? ' · ' + d.text : '') + (d.type === 'vp' ? ' · ' + vpSummary(d) : '')), el('button', { onclick: () => { selected = d; redrawSoon(); renderDrawList(); } }, '◎'), el('button', { onclick: () => { l.splice(i, 1); if (selected === d) selected = null; saveDrawings(); renderDrawList(); redrawSoon(); } }, '×'))));
+  l.forEach((d, i) => box.append(el('div', { class: 'dr', style: d === selected ? 'background:var(--bg3)' : '' }, el('span', { style: 'color:' + d.color }, '● ' + toolLabel(d.type) + ' · ' + d.pts[0].d + (d.text ? ' · ' + d.text : '') + (d.type === 'vp' ? ' · ' + vpSummary(d) : '')), el('button', { onclick: () => { selected = d; redrawSoon(); renderDrawList(); } }, '◎'), el('button', { onclick: () => { l.splice(i, 1); if (selected === d) selected = null; saveDrawings(); renderDrawList(); redrawSoon(); } }, '×'))));
 }
 $('#undoDraw').onclick = () => { const l = loadDrawings(); l.pop(); saveDrawings(); renderDrawList(); redrawSoon(); };
 $('#clearDraw').onclick = () => { drawings[S.sym] = []; saveDrawings(); selected = null; renderDrawList(); redrawSoon(); };
@@ -661,7 +754,7 @@ document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click
 chartEl.addEventListener('pointerdown', () => { if (window.innerWidth <= 760) document.body.classList.remove('drawer'); });
 
 /* ---------------- About / licences ---------------- */
-$('#aboutBtn').onclick = () => {
+$('#about').onclick = () => {
   document.querySelector('#dlg')?.remove();
   const body = el('div', { class: 'dbody' },
     el('h5', {}, 'TradinGo'),

@@ -93,3 +93,8 @@ td.n{direction:ltr;text-align:end}tr.clk{cursor:pointer}tr.clk:hover{background:
 .brand{display:flex;align-items:center;gap:7px}.brand .bn span{color:var(--acc)}
 #about{font-size:10px;color:var(--mut);text-align:center;padding:2px 6px;background:var(--bg);border-top:1px solid var(--line)}#about a{color:var(--mut)}
 @media (max-width:760px){.plg{font-size:11px}.plg .pn{max-width:46vw;overflow:hidden;text-overflow:ellipsis}}
+#tools button.grp{position:relative}#tools button.grp::after{content:"";position:absolute;right:2px;bottom:2px;border:4px solid transparent;border-right-color:var(--mut);border-bottom-color:var(--mut)}
+#fly{position:fixed;z-index:60;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:4px;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.5);max-height:70vh;overflow:auto;min-width:200px}
+#fly button{display:flex;align-items:center;gap:10px;background:transparent;border:0;color:var(--tx);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;text-align:start;width:100%}
+#fly button:hover{background:var(--bg3)}#fly button.on{background:var(--acc);color:#fff}#fly .ic{width:22px;text-align:center;font-size:16px}
+#about{cursor:pointer}
