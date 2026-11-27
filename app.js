@@ -104,6 +104,7 @@ function makeMain() {
 /* ---------------- indicators ---------------- */
 const PAL = ['#f5c542', '#2f81f7', '#e5534b', '#a371f7', '#3fb950', '#ff8f40', '#56d4dd', '#f778ba'];
 const IND = {
+  vpvr: { label: 'Volume Profile (Fixed Range)', pane: 0, params: [0, 24], vp: true, build: () => [], title: (p) => 'Volume Profile ' + (p[0] > 0 ? L2('آخر ', 'last ') + p[0] + L2(' شمعة', ' bars') : L2('النطاق المرئي', 'visible range')) + ' · ' + (p[1] || 24) + L2(' صف', ' rows') },
   volume: { label: 'Volume', pane: 1, params: [], build: (B) => [{ name: 'Volume', type: 'hist', values: B.volume, colors: B.close.map((c, i) => (c >= B.open[i]) ? 'rgba(38,166,154,.55)' : 'rgba(239,83,80,.55)') }] },
   sma: { label: 'SMA', pane: 0, params: [20], build: (B, p, ci) => [{ name: 'SMA ' + p[0], values: TA.sma(B.close, p[0]), color: PAL[ci % PAL.length] }] },
   ema: { label: 'EMA', pane: 0, params: [20], build: (B, p, ci) => [{ name: 'EMA ' + p[0], values: TA.ema(B.close, p[0]), color: PAL[ci % PAL.length] }] },
@@ -162,7 +163,7 @@ function renderIndList() {
   const box = $('#indList'); box.innerHTML = '';
   S.inds.forEach((ind, k) => {
     const d = IND[ind.id]; if (!d) return;
-    const inp = d.params.length ? el('input', { type: 'text', value: (ind.p.length ? ind.p : d.params).join(','), title: 'params', onchange: (e) => { const v = e.target.value.split(',').map(x => parseFloat(x)).filter(x => !isNaN(x) && x > 0); if (v.length) { ind.p = v; saveInds(); rebuildExtras(); } } }) : el('span');
+    const inp = d.params.length ? el('input', { type: 'text', value: (ind.p.length ? ind.p : d.params).join(','), title: 'params', onchange: (e) => { const v = e.target.value.split(',').map(x => parseFloat(x)).filter(x => !isNaN(x) && (x > 0 || (ind.id === 'vpvr' && x === 0))); if (v.length) { ind.p = v; saveInds(); rebuildExtras(); } } }) : el('span');
     box.append(el('div', { class: 'ind' }, el('span', { class: 'nm' }, d.label), inp, el('span', { class: 'v', id: 'iv' + k }), el('button', { title: 'hide/show', onclick: () => { (ind.o = ind.o || {}).hidden = !ind.o.hidden; saveInds(); rebuildExtras(); } }, '👁'), el('button', { title: 'settings', onclick: () => openIndSettings(k) }, '⚙'), el('button', { title: 'remove', onclick: () => { S.inds.splice(k, 1); saveInds(); rebuildExtras(); } }, '×')));
   });
 }
@@ -319,7 +320,7 @@ function vpCompute(d, rows) {
 }
 function drawVP(d, pts, W, H, isSel) {
   const rows = d.rows || 24, r = vpCompute(d, rows); if (!r || !r.sum) { cx.fillText(L2('لا يوجد حجم في النطاق', 'No volume in range'), pts[0].x, pts[0].y); return; }
-  const xa = Math.min(pts[0].x, pts[1].x), xb = Math.max(pts[0].x, pts[1].x), maxW = Math.max(40, (xb - xa) * 0.6), mx = Math.max(...r.tot);
+  const xa = Math.min(pts[0].x, pts[1].x), xb = Math.max(pts[0].x, pts[1].x), maxW = Math.max(40, (xb - xa) * (d.frac || 0.6)), mx = Math.max(...r.tot);
   const y = (p) => main.priceToCoordinate(p); const yt = y(r.hi), yb = y(r.lo); if (yt == null || yb == null) return;
   cx.setLineDash([]); cx.globalAlpha = 1; cx.strokeStyle = 'rgba(133,147,163,.5)'; cx.lineWidth = 1; cx.strokeRect(xa, Math.min(yt, yb), xb - xa, Math.abs(yb - yt));
   for (let i = 0; i < rows; i++) {
@@ -331,6 +332,19 @@ function drawVP(d, pts, W, H, isSel) {
   cx.setLineDash([4, 4]); cx.lineWidth = 1; cx.strokeStyle = '#8593a3'; [r.lo + (r.va[1] + 1) * r.step, r.lo + r.va[0] * r.step].forEach(p => { const yy = y(p); cx.beginPath(); cx.moveTo(xa, yy); cx.lineTo(xb, yy); cx.stroke(); }); cx.setLineDash([]);
   cx.font = 'bold 12px system-ui'; cx.fillStyle = '#ef5350'; cx.fillText('POC ' + fmt(pocP), xb - 78, yp - 4);
   cx.font = '11px system-ui'; cx.fillStyle = '#8593a3'; cx.fillText('VAH ' + fmt(r.lo + (r.va[1] + 1) * r.step), xb - 78, y(r.lo + (r.va[1] + 1) * r.step) - 3); cx.fillText('VAL ' + fmt(r.lo + r.va[0] * r.step), xb - 78, y(r.lo + r.va[0] * r.step) + 12);
+}
+function drawAutoVP(W, H) {
+  if (!S.bars.length) return; const n = S.bars.length;
+  S.inds.forEach((ind) => {
+    if (ind.id !== 'vpvr' || (ind.o && ind.o.hidden)) return;
+    const pr = ind.p.length ? ind.p : IND.vpvr.params; let i1, i2;
+    if (pr[0] > 0) { i2 = n - 1; i1 = Math.max(0, n - Math.round(pr[0])); }
+    else { const r = chart.timeScale().getVisibleLogicalRange(); if (!r) return; i1 = Math.max(0, Math.ceil(r.from)); i2 = Math.min(n - 1, Math.floor(r.to)); }
+    if (i2 <= i1) return;
+    const ts = chart.timeScale(), x1 = ts.logicalToCoordinate(i1), x2 = ts.logicalToCoordinate(i2); if (x1 == null || x2 == null) return;
+    const d = { type: 'vp', rows: Math.max(4, Math.min(100, Math.round(pr[1] || 24))), frac: 0.35, pts: [{ d: S.bars[i1].time }, { d: S.bars[i2].time }] };
+    drawVP(d, [{ x: x1, y: 0 }, { x: x2, y: 0 }], W, H, false);
+  });
 }
 function vpSummary(d) { const r = vpCompute(d, d.rows || 24); return r && r.sum ? 'POC ' + fmt(r.lo + (r.poc + 0.5) * r.step) : ''; }
 function drawOne(d, W, H, isSel) {
@@ -351,10 +365,11 @@ function drawOne(d, W, H, isSel) {
 function redraw() {
   if (!main) return; const { W, H } = fitCanvas(); cx.clearRect(0, 0, W, H);
   loadDrawings().forEach(d => drawOne(d, W, H, d === selected));
+  drawAutoVP(W, H);
   if (pending && hover) drawOne({ type: pending.type, color: S.color, pts: [pending.pts[0], hover] }, W, H, false);
 }
 const redrawSoon = () => { lastSig = ''; };
-function loop() { try { placeLegends(); if (main && S.bars.length) { const r = chart.timeScale().getVisibleLogicalRange(), sig = [r && r.from.toFixed(2), r && r.to.toFixed(2), main.priceToCoordinate(1), main.priceToCoordinate(1000), wrap.clientWidth, wrap.clientHeight, S.sym, S.tf, drawings[S.sym]?.length, selected && 1, hover && hover.d + hover.p, S.type, chart.priceScale('right').width()].join('|'); if (sig !== lastSig) { lastSig = sig; redraw(); } } } catch (e) { } requestAnimationFrame(loop); }
+function loop() { try { placeLegends(); if (main && S.bars.length) { const r = chart.timeScale().getVisibleLogicalRange(), sig = [r && r.from.toFixed(2), r && r.to.toFixed(2), main.priceToCoordinate(1), main.priceToCoordinate(1000), wrap.clientWidth, wrap.clientHeight, S.sym, S.tf, drawings[S.sym]?.length, selected && 1, hover && hover.d + hover.p, S.type, chart.priceScale('right').width(), S.inds.map(x => x.id + (x.p || []) + ((x.o && x.o.hidden) ? 'h' : '')).join()].join('|'); if (sig !== lastSig) { lastSig = sig; redraw(); } } } catch (e) { } requestAnimationFrame(loop); }
 cv.addEventListener('pointermove', (e) => { if (!pending) return; const r = cv.getBoundingClientRect(); hover = fromPx(e.clientX - r.left, e.clientY - r.top); });
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), pt = fromPx(e.clientX - r.left, e.clientY - r.top); if (!pt) return;
@@ -498,7 +513,7 @@ $('#savedDel').onclick = () => { const sv = store.get('scripts', {}), k = $('#sa
 const SRC_OK = new Set(['sma', 'ema', 'wma', 'bb', 'rsi', 'macd', 'roc', 'cci']);
 const SRC_LIST = ['close', 'open', 'high', 'low', 'hl2', 'hlc3', 'ohlc4'];
 const srcArr = (B, s) => B.close.map((c, i) => s === 'open' ? B.open[i] : s === 'high' ? B.high[i] : s === 'low' ? B.low[i] : s === 'hl2' ? (B.high[i] + B.low[i]) / 2 : s === 'hlc3' ? (B.high[i] + B.low[i] + c) / 3 : s === 'ohlc4' ? (B.open[i] + B.high[i] + B.low[i] + c) / 4 : c);
-const PN = { bb: ['Length', 'StdDev'], macd: ['Fast', 'Slow', 'Signal'], stoch: ['%K length', '%D', 'Smooth'], supertrend: ['ATR length', 'Factor'] };
+const PN = { vpvr: [L2('عدد الشموع (0 = النطاق المرئي)', 'Last bars (0 = visible range)'), L2('عدد الصفوف', 'Rows')], bb: ['Length', 'StdDev'], macd: ['Fast', 'Slow', 'Signal'], stoch: ['%K length', '%D', 'Smooth'], supertrend: ['ATR length', 'Factor'] };
 let lastLegI = -1;
 const legLayer = document.createElement('div'); legLayer.id = 'paneLegends'; $('#chartWrap').append(legLayer);
 function renderPaneLegends() {
@@ -507,7 +522,7 @@ function renderPaneLegends() {
     const d = IND[ind.id]; if (!d || !curVals[k]) return; const o = ind.o || {};
     const pr = ind.p.length ? ind.p : d.params; const src = SRC_OK.has(ind.id) ? ' ' + (o.src || 'close') : '';
     const row = el('div', { class: 'plg' + (o.hidden ? ' off' : ''), 'data-k': k },
-      el('span', { class: 'pn' }, d.label + (pr.length ? ' ' + pr.join(' ') : '') + src), el('span', { class: 'pv', dir: 'ltr' }),
+      el('span', { class: 'pn' }, d.title ? d.title(pr) : d.label + (pr.length ? ' ' + pr.join(' ') : '') + src), el('span', { class: 'pv', dir: 'ltr' }),
       el('button', { title: 'hide/show', onclick: () => { o.hidden = !o.hidden; ind.o = o; saveInds(); rebuildExtras(); } }, o.hidden ? '🚫' : '👁'),
       el('button', { title: 'settings', onclick: () => openIndSettings(k) }, '⚙'),
       el('button', { title: 'remove', onclick: () => { S.inds.splice(k, 1); saveInds(); rebuildExtras(); } }, '🗑'));
@@ -548,10 +563,12 @@ function openIndSettings(k) {
     const t = el('select', { onchange: (e) => { o.maType = e.target.value; apply(); } }, el('option', { value: 'SMA' }, 'SMA'), el('option', { value: 'EMA' }, 'EMA')); t.value = o.maType || 'SMA'; body.append(row(L2('نوع المتوسط', 'MA type'), t));
     body.append(row(L2('طول المتوسط', 'MA length'), num(o.maLen || 14, (x) => { o.maLen = Math.max(1, Math.round(x)); apply(); }, '1')));
   }
+  const isVP = ind.id === 'vpvr';
+  if (isVP) body.append(el('div', { class: 'hint' }, L2('الفترة = 0 يعني النطاق المرئي على الشارت، أو اكتب عدد الشموع الأخيرة.', 'Bars = 0 uses the visible range; or enter the number of last bars.')));
   body.append(el('h5', {}, L2('النمط', 'Style')));
   const sp = curVals[k] ? curVals[k].specs : [];
   sp.forEach((s, j) => { if (s.type === 'hist' || s.colors) return; body.append(row(s.name, el('input', { type: 'color', value: (o.colors && o.colors[j]) || s.color || '#2f81f7', onchange: (e) => { o.colors = o.colors || []; o.colors[j] = e.target.value; apply(); } }))); });
-  const w = el('select', { onchange: (e) => { o.width = +e.target.value; apply(); } }, ...[1, 1.5, 2, 3, 4].map(x => el('option', { value: x }, x))); w.value = o.width || 1.5; body.append(row(L2('سمك الخط', 'Line width'), w));
+  const w = isVP ? el('span') : el('select', { onchange: (e) => { o.width = +e.target.value; apply(); } }, ...[1, 1.5, 2, 3, 4].map(x => el('option', { value: x }, x))); if (!isVP) { w.value = o.width || 1.5; body.append(row(L2('سمك الخط', 'Line width'), w)); }
   const lv = o.levels || (sp[0] && sp[0].levels) || [];
   if (lv.length) {
     body.append(el('h5', {}, L2('المستويات', 'Levels')));
