@@ -312,7 +312,7 @@ function renderScreener() {
   const data = scrRows.filter(F).filter(r => !q || nameOf(r).includes(q)).sort((a, b) => { const x = a[scrSort.k] ?? -Infinity, y = b[scrSort.k] ?? -Infinity; return (x > y ? 1 : x < y ? -1 : 0) * scrSort.d; });
   const th = cols.map(([k, n]) => el('th', { onclick: () => { scrSort = { k, d: scrSort.k === k ? -scrSort.d : -1 }; renderScreener(); } }, n));
   const fm = { last: v => fmt(v), d1: pct, m1: pct, y1: pct, rsi: v => fmt(v, 0), fromHi: pct, turn: v => fmt(v / 1e6, 1) + 'M' };
-  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); } }, cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? el('span', {}, r.id, el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((symMap[r.id] || {})[lang === 'ar' ? 'ar' : 'en'] || '').slice(0, 26))) : fm[k](r[k])))));
+  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); hidePanel(); } }, cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? el('span', {}, r.id, el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((symMap[r.id] || {})[lang === 'ar' ? 'ar' : 'en'] || '').slice(0, 26))) : fm[k](r[k])))));
   box.append(sel, el('span', { class: 'hint', style: 'margin:0 8px' }, data.length + ' / ' + scrRows.length), el('table', {}, el('thead', {}, el('tr', {}, th)), el('tbody', {}, trs)));
 }
 
@@ -895,8 +895,13 @@ setSymbol(symMap[S.sym] ? S.sym : SYMS[0].id);
 loop();
 window.addEventListener('resize', redrawSoon);
 
-$('#panelBtn').onclick = () => { document.body.classList.toggle('drawer'); setTimeout(redrawSoon, 300); };
-document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => document.body.classList.add('drawer')));
+const isMob = () => window.innerWidth <= 760;
+function showPanel() { document.body.classList.remove('nopanel'); document.body.classList.add('drawer'); setTimeout(redrawSoon, 300); }
+function hidePanel() { document.body.classList.add('nopanel'); document.body.classList.remove('drawer'); setTimeout(redrawSoon, 300); }
+const panelOpen = () => isMob() ? document.body.classList.contains('drawer') : !document.body.classList.contains('nopanel');
+$('#panelBtn').onclick = () => { panelOpen() ? hidePanel() : showPanel(); };
+document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', showPanel));
+{ const x = el('button', { class: 'xbtn', title: 'close' }, '✕'); x.onclick = (e) => { e.stopPropagation(); hidePanel(); }; $('#tabs').append(x); }
 chartEl.addEventListener('pointerdown', () => { if (window.innerWidth <= 760) document.body.classList.remove('drawer'); });
 
 /* ---------------- About / licences ---------------- */
