@@ -14,6 +14,7 @@
   <div class="sym-box">
     <input id="symInput" list="symList" autocomplete="off" spellcheck="false" data-i18n-ph="search">
     <datalist id="symList"></datalist>
+    <button id="favBtn" class="favbtn" type="button">☆</button>
   </div>
   <div id="symName" class="sym-name"></div>
   <div class="group" id="tfGroup"></div>
@@ -42,6 +43,7 @@
       <button data-tab="stats" data-i18n="stats"></button>
       <button data-tab="draw" data-i18n="drawings"></button>
       <button data-tab="scr" data-i18n="screener"></button>
+      <button data-tab="fav" data-i18n="fav"></button>
       <button data-tab="alerts" data-i18n="alerts"></button>
     </nav>
     <div class="tab" id="tab-ind">
@@ -74,6 +76,7 @@
       <div class="row"><button class="btn" id="undoDraw" data-i18n="undo"></button><button class="btn" id="clearDraw" data-i18n="clearAll"></button></div>
       <div class="hint" data-i18n="drawHint"></div>
     </div>
+    <div class="tab" id="tab-fav" hidden><div id="favBox"></div></div>
     <div class="tab" id="tab-scr" hidden>
       <div class="row"><button class="btn primary" id="scrRun" data-i18n="scan"></button><span id="scrProg" class="hint"></span></div>
       <div id="scrBox"></div>

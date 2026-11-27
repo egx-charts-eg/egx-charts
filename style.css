@@ -118,3 +118,8 @@ body.drawing .plg{pointer-events:none}
 #tabs .xbtn{position:sticky;inset-inline-end:0;background:var(--bg2);z-index:2}
 @media (max-width:760px){#tabs{flex-wrap:wrap;overflow:visible}#tabs button{flex:1 1 28%}#tabs .xbtn{position:static;flex:0 0 auto;order:-1;background:none}}
 .group button.off{opacity:.38}
+
+.favbtn{background:none;border:0;color:var(--mut);font-size:20px;line-height:1;cursor:pointer;padding:0 6px}.favbtn.on{color:#f5b83d}
+.favx{background:none;border:0;color:var(--mut);font-size:18px;cursor:pointer;padding:0 4px}.favx.on{color:#f5b83d}
+#tab-fav{padding:8px}#tab-fav table{width:100%;font-size:12px}
+.sym-box{display:flex;align-items:center}

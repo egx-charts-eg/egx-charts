@@ -10,7 +10,7 @@ const store = { get: (k, d) => { try { const v = localStorage.getItem('egx.' + k
 
 /* ---------------- i18n ---------------- */
 const I18N = {
-  ar: { search: 'ابحث عن سهم (COMI)', log: 'لوغاريتمي', indicators: 'المؤشرات', script: 'سكربت', stats: 'إحصائيات', drawings: 'الرسومات', screener: 'الماسح',
+  ar: { search: 'ابحث عن سهم (COMI)', log: 'لوغاريتمي', indicators: 'المؤشرات', script: 'سكربت', stats: 'إحصائيات', drawings: 'الرسومات', fav: '★ المفضلة', screener: 'الماسح',
     add: 'إضافة', compare: 'مقارنة / نسبة سهم لسهم آخر', cmpPh: 'رمز السهم الثاني (مثال ETEL)', apply: 'تطبيق', cmpHint: 'بيرسم النسبة (سعر السهم ÷ سعر السهم التاني) في نافذة جديدة، وبيحسب الارتباط في الإحصائيات.',
     load: 'تحميل', run: 'تشغيل', save: 'حفظ', clearOut: 'مسح', autorun: 'تشغيل تلقائي', apiTitle: 'توثيق واجهة السكربت',
     undo: 'تراجع', clearAll: 'مسح الكل', drawHint: 'اختار أداة من الشريط الجانبي واضغط نقطتين على الشارت. اضغط على رسمة لتحديدها ثم Delete لمسحها. Esc للإلغاء.',
@@ -20,8 +20,8 @@ const I18N = {
     enterText: 'اكتب النص ثم Enter', ex: 'أمثلة سكربت', savedPh: 'سكربتاتي المحفوظة', saveName: 'اسم السكربت؟', ranges: ['شهر', '3 شهور', '6 شهور', 'سنة', '3 سنين', '5 سنين', 'الكل'],
     noIntra: 'لا توجد بيانات داخل اليوم لهذا السهم', alerts: 'تنبيهات', aboutTxt: 'الرسوم البيانية بواسطة', tf: { '15m': '15 دقيقة', '1h': 'ساعة', '2h': 'ساعتان', '3h': '3 ساعات', '4h': '4 ساعات', D: 'يوم', W: 'أسبوع', M: 'شهر', Q: 'ربع', Y: 'سنة' }, types: { candle: 'شموع', bar: 'أعمدة', line: 'خط', area: 'مساحة' },
     stat: { last: 'آخر سعر', date: 'آخر تاريخ بيانات', since: 'أول تاريخ بيانات', d1: 'يومي', w1: 'أسبوع (5 جلسات)', m1: 'شهر (21)', m3: '3 شهور (63)', m6: '6 شهور (126)', y1: 'سنة (252)', ytd: 'منذ بداية السنة', hi: 'أعلى سعر 52 أسبوع', lo: 'أقل سعر 52 أسبوع', fromHi: 'البعد عن القمة', fromLo: 'البعد عن القاع', avgVol: 'متوسط الحجم 30 يوم', turn: 'متوسط قيمة التداول 30 يوم (جنيه)', vol: 'التذبذب السنوي', dd: 'أقصى تراجع (سنة)', rsi: 'RSI(14)', atr: 'ATR(14) كنسبة', trend: 'الاتجاه', up: 'صاعد (50 > 200)', down: 'هابط (50 < 200)', ratio: 'النسبة الحالية', ratioPct: 'مكان النسبة في آخر سنة', corr: 'الارتباط (60 جلسة)', corr1: 'الارتباط (سنة)', cmp: 'مقارنة مع', note: 'مفيش نسب مالية (P/E مثلاً) في المصدر المجاني. تقدر تحسب أي نسبة سعرية بالسكربت.' },
-    cols: { sym: 'الرمز', trend: 'الاتجاه' }, filters: ['الكل', 'RSI أقل من 30', 'RSI أكبر من 70', 'قريب من القمة (أقل من 5%)', 'صاعد (50>200)', 'هابط (50<200)'] },
-  en: { search: 'Search symbol (COMI)', log: 'Log', indicators: 'Indicators', script: 'Script', stats: 'Stats', drawings: 'Drawings', screener: 'Screener',
+    cols: { sym: 'الرمز', trend: 'الاتجاه' }, filters: ['الكل', 'RSI أقل من 30', 'RSI أكبر من 70', 'قريب من القمة (أقل من 5%)', 'صاعد (50>200)', 'هابط (50<200)', 'المفضلة فقط ★'] },
+  en: { search: 'Search symbol (COMI)', log: 'Log', indicators: 'Indicators', script: 'Script', stats: 'Stats', drawings: 'Drawings', fav: '★ Favorites', screener: 'Screener',
     add: 'Add', compare: 'Compare / ratio to another stock', cmpPh: 'Second symbol (e.g. ETEL)', apply: 'Apply', cmpHint: 'Plots price ratio (this ÷ other) in its own pane and adds correlation to Stats.',
     load: 'Load', run: 'Run', save: 'Save', clearOut: 'Clear', autorun: 'Auto-run', apiTitle: 'Script API reference',
     undo: 'Undo', clearAll: 'Clear all', drawHint: 'Pick a tool on the left and click two points on the chart. Click a drawing to select it, Delete removes it. Esc cancels.',
@@ -31,7 +31,7 @@ const I18N = {
     enterText: 'Type text, Enter', ex: 'Script examples', savedPh: 'My saved scripts', saveName: 'Script name?', ranges: ['1M', '3M', '6M', '1Y', '3Y', '5Y', 'All'],
     noIntra: 'No intraday data for this symbol', alerts: 'Alerts', aboutTxt: 'Charts powered by', tf: { '15m': '15 minutes', '1h': '1 hour', '2h': '2 hours', '3h': '3 hours', '4h': '4 hours', D: 'Day', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'Year' }, types: { candle: 'Candles', bar: 'Bars', line: 'Line', area: 'Area' },
     stat: { last: 'Last close', date: 'Last data date', since: 'First data date', d1: '1 day', w1: '1 week (5 sessions)', m1: '1 month (21)', m3: '3 months (63)', m6: '6 months (126)', y1: '1 year (252)', ytd: 'Year to date', hi: '52w high', lo: '52w low', fromHi: 'From high', fromLo: 'From low', avgVol: 'Avg volume 30d', turn: 'Avg turnover 30d (EGP)', vol: 'Annualised volatility', dd: 'Max drawdown (1y)', rsi: 'RSI(14)', atr: 'ATR(14) % of price', trend: 'Trend', up: 'Up (50 > 200)', down: 'Down (50 < 200)', ratio: 'Current ratio', ratioPct: 'Ratio percentile (1y)', corr: 'Correlation (60 sessions)', corr1: 'Correlation (1y)', cmp: 'Compared with', note: 'No fundamental ratios (e.g. P/E) in the free data source. Any price-based ratio can be computed in a script.' },
-    cols: { sym: 'Symbol', trend: 'Trend' }, filters: ['All', 'RSI below 30', 'RSI above 70', 'Near 52w high (<5%)', 'Uptrend (50>200)', 'Downtrend (50<200)'] }
+    cols: { sym: 'Symbol', trend: 'Trend' }, filters: ['All', 'RSI below 30', 'RSI above 70', 'Near 52w high (<5%)', 'Uptrend (50>200)', 'Downtrend (50<200)', 'Favorites only ★'] }
 };
 let lang = store.get('lang', 'ar');
 const T = () => I18N[lang];
@@ -200,7 +200,7 @@ async function setSymbol(id, keepRange) {
   try { S.daily = await loadDaily(id); } catch (e) { if (!isIntra(S.tf)) { alert(e.message); return; } S.daily = []; }
   if (isIntra(S.tf) && !INTRA_IDS.has(id.toUpperCase())) { S.tf = 'D'; store.set('tf', 'D'); }
   S.intra = null; if (isIntra(S.tf)) { try { S.intra = await loadIntra(id); } catch (e) { alert(e.message); } }
-  S.sym = id; store.set('sym', id); $('#symInput').value = id; buildTop();
+  S.sym = id; store.set('sym', id); $('#symInput').value = id; buildTop(); updFavBtn();
   setName();
   document.title = id + ' | TradinGo';
   refreshBars(); if (!keepRange) applyRange(); loadDrawings(); selected = null; renderDrawList(); redrawSoon(); renderStats(); checkAlerts(false);
@@ -247,6 +247,7 @@ function applyLang() {
   buildTop(); buildTools(); buildSelects(); if (typeof labelsIO === 'function') { labelsIO(); buildAlertsUI(); } $('#apiDoc').textContent = API_DOC; setName();
   if (S.daily.length) { renderStats(); renderDrawList(); }
   if (scrRows) renderScreener();
+  renderFav(); updFavBtn();
 }
 function buildSelects() {
   const si = $('#indSel'); si.innerHTML = ''; Object.entries(IND).forEach(([k, d]) => si.append(el('option', { value: k }, d.label)));
@@ -260,7 +261,7 @@ $('#rangeSel').onchange = (e) => { S.range = +e.target.value; store.set('range',
 $('#logScale').checked = S.log; $('#logScale').onchange = (e) => { S.log = e.target.checked; store.set('log', S.log); chart.priceScale('right').applyOptions({ mode: S.log ? LW.PriceScaleMode.Logarithmic : LW.PriceScaleMode.Normal }); redrawSoon(); };
 chart.priceScale('right').applyOptions({ mode: S.log ? LW.PriceScaleMode.Logarithmic : LW.PriceScaleMode.Normal });
 $('#langBtn').onclick = () => { lang = lang === 'ar' ? 'en' : 'ar'; store.set('lang', lang); applyLang(); };
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.tab').forEach(t => t.hidden = t.id !== 'tab-' + b.dataset.tab); if (b.dataset.tab === 'stats') renderStats(); });
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.tab').forEach(t => t.hidden = t.id !== 'tab-' + b.dataset.tab); if (b.dataset.tab === 'stats') renderStats(); if (b.dataset.tab === 'fav') renderFav(); });
 $('#cmpBtn').onclick = async () => { const id = $('#cmpInput').value.toUpperCase().trim(); if (!symMap[id]) return; S.cmp = id; S.cmpDaily = await loadDaily(id); rebuildExtras(); renderStats(); };
 $('#cmpClr').onclick = () => { S.cmp = null; S.cmpDaily = null; $('#cmpInput').value = ''; rebuildExtras(); renderStats(); };
 
@@ -288,6 +289,24 @@ function renderStats() {
 }
 
 /* ---------------- screener ---------------- */
+
+function favs() { return store.get('fav', []); }
+function toggleFav(id) { const f = favs(), i = f.indexOf(id); if (i >= 0) f.splice(i, 1); else f.push(id); store.set('fav', f); updFavBtn(); renderFav(); if (scrRows) renderScreener(); }
+function updFavBtn() { const b = $('#favBtn'); if (!b) return; const on = favs().includes(S.sym); b.textContent = on ? '★' : '☆'; b.classList.toggle('on', on); b.title = on ? L2('إزالة من المفضلة', 'Remove from favorites') : L2('أضف للمفضلة', 'Add to favorites'); }
+function favRow(id) { if (window.EGX_SCAN) { const r = window.EGX_SCAN.rows.find(x => x.id === id); if (r) return r; } return null; }
+function renderFav() {
+  const box = $('#favBox'); if (!box) return; box.innerHTML = ''; const f = favs();
+  const inp = el('input', { id: 'favIn', list: 'symList', autocomplete: 'off', placeholder: L2('أضف سهم (مثال COMI)', 'Add a stock (e.g. COMI)'), style: 'flex:1;min-width:0' });
+  const add = el('button', { class: 'btn', onclick: () => { const v = inp.value.toUpperCase().trim(); if (!symMap[v]) { inp.value = ''; inp.placeholder = L2('رمز غير معروف', 'Unknown symbol'); return; } if (!favs().includes(v)) toggleFav(v); else inp.value = ''; } }, L2('إضافة', 'Add'));
+  box.append(el('div', { class: 'row' }, inp, add));
+  if (!f.length) { box.append(el('div', { class: 'hint' }, L2('مفيش أسهم في المفضلة. اضغط ☆ جنب اسم السهم فوق، أو ★ في الماسح، أو اكتب الرمز هنا.', 'No favorites yet. Tap ☆ next to the symbol above, ★ in the screener, or type a symbol here.'))); return; }
+  const trs = f.filter(id => symMap[id]).map(id => { const r = favRow(id), m = symMap[id];
+    return el('tr', { class: 'clk', onclick: () => { setSymbol(id); hidePanel(); } },
+      el('td', {}, el('span', {}, id, el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((lang === 'ar' ? m.ar : m.en) || '').slice(0, 26)))),
+      el('td', { class: 'n' }, r ? fmt(r.last) : '–'), el('td', { class: 'n ' + (r ? cls(r.d1) : '') }, r ? pct(r.d1) : '–'),
+      el('td', { class: 'n' }, el('button', { class: 'favx on', title: L2('إزالة', 'Remove'), onclick: (e) => { e.stopPropagation(); toggleFav(id); } }, '★'))); });
+  box.append(el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, L2('الرمز', 'Symbol')), el('th', {}, L2('السعر', 'Price')), el('th', {}, L2('يومي', 'Day')), el('th', {}, ''))), el('tbody', {}, trs)));
+}
 let scrRows = null, scrSort = { k: 'turn', d: -1 }, scrFilter = 0;
 $('#scrRun').onclick = async () => {
   const rows = []; let done = 0;
@@ -307,13 +326,13 @@ document.querySelector('[data-tab="scr"]').addEventListener('click', () => { if 
 function renderScreener() {
   ensureScrSearch();
   const box = $('#scrBox'); box.innerHTML = ''; const sel = el('select', {}, T().filters.map((f, i) => el('option', { value: i }, f))); sel.value = scrFilter; sel.onchange = (e) => { scrFilter = +e.target.value; renderScreener(); };
-  const F = [() => true, r => r.rsi < 30, r => r.rsi > 70, r => r.fromHi > -0.05, r => r.s200 != null && r.s50 > r.s200, r => r.s200 != null && r.s50 < r.s200][scrFilter];
+  const F = [() => true, r => r.rsi < 30, r => r.rsi > 70, r => r.fromHi > -0.05, r => r.s200 != null && r.s50 > r.s200, r => r.s200 != null && r.s50 < r.s200, r => favs().includes(r.id)][scrFilter];
   const cols = [['id', T().cols.sym], ['last', T().price], ['d1', T().chg], ['m1', '1M'], ['y1', '1Y'], ['rsi', 'RSI'], ['fromHi', T().fromHigh], ['turn', 'EGP/d']];
   const q = scrQ(), nameOf = (r) => { const m = symMap[r.id] || {}; return (r.id + ' ' + (m.en || '') + ' ' + (m.ar || '')).toLowerCase(); };
   const data = scrRows.filter(F).filter(r => !q || nameOf(r).includes(q)).sort((a, b) => { const x = a[scrSort.k] ?? -Infinity, y = b[scrSort.k] ?? -Infinity; return (x > y ? 1 : x < y ? -1 : 0) * scrSort.d; });
-  const th = cols.map(([k, n]) => el('th', { onclick: () => { scrSort = { k, d: scrSort.k === k ? -scrSort.d : -1 }; renderScreener(); } }, n));
+  const th = [el('th', {}, '★')].concat(cols.map(([k, n]) => el('th', { onclick: () => { scrSort = { k, d: scrSort.k === k ? -scrSort.d : -1 }; renderScreener(); } }, n)));
   const fm = { last: v => fmt(v), d1: pct, m1: pct, y1: pct, rsi: v => fmt(v, 0), fromHi: pct, turn: v => fmt(v / 1e6, 1) + 'M' };
-  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); hidePanel(); } }, cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? el('span', {}, r.id, el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((symMap[r.id] || {})[lang === 'ar' ? 'ar' : 'en'] || '').slice(0, 26))) : fm[k](r[k])))));
+  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); hidePanel(); } }, [el('td', {}, el('button', { class: 'favx' + (favs().includes(r.id) ? ' on' : ''), onclick: (e) => { e.stopPropagation(); toggleFav(r.id); } }, favs().includes(r.id) ? '★' : '☆'))].concat(cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? el('span', {}, r.id, el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((symMap[r.id] || {})[lang === 'ar' ? 'ar' : 'en'] || '').slice(0, 26))) : fm[k](r[k]))))));
   box.append(sel, el('span', { class: 'hint', style: 'margin:0 8px' }, data.length + ' / ' + scrRows.length), el('table', {}, el('thead', {}, el('tr', {}, th)), el('tbody', {}, trs)));
 }
 
@@ -900,6 +919,7 @@ const isMob = () => window.innerWidth <= 760;
 function showPanel() { document.body.classList.remove('nopanel'); document.body.classList.add('drawer'); setTimeout(redrawSoon, 300); }
 function hidePanel() { document.body.classList.add('nopanel'); document.body.classList.remove('drawer'); setTimeout(redrawSoon, 300); }
 const panelOpen = () => isMob() ? document.body.classList.contains('drawer') : !document.body.classList.contains('nopanel');
+$('#favBtn').onclick = () => toggleFav(S.sym);
 $('#panelBtn').onclick = () => { panelOpen() ? hidePanel() : showPanel(); };
 document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', showPanel));
 { const x = el('button', { class: 'xbtn', title: 'close' }, '✕'); x.onclick = (e) => { e.stopPropagation(); hidePanel(); }; $('#tabs').append(x); }
