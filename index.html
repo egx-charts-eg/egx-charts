@@ -40,6 +40,7 @@
       <button data-tab="stats" data-i18n="stats"></button>
       <button data-tab="draw" data-i18n="drawings"></button>
       <button data-tab="scr" data-i18n="screener"></button>
+      <button data-tab="alerts" data-i18n="alerts"></button>
     </nav>
     <div class="tab" id="tab-ind">
       <div class="row"><select id="indSel"></select><button class="btn" id="indAdd" data-i18n="add"></button></div>
@@ -60,6 +61,7 @@
         <button class="btn" id="clrScript" data-i18n="clearOut"></button>
         <label class="chk"><input type="checkbox" id="autoRun" checked><span data-i18n="autorun"></span></label>
       </div>
+      <div class="row"><button class="btn" id="expScripts"></button><button class="btn" id="impScripts"></button><input type="file" id="impFile" accept=".json,application/json" hidden></div>
       <div class="row"><select id="savedSel"></select><button class="btn" id="savedLoad" data-i18n="load"></button><button class="btn" id="savedDel">×</button></div>
       <pre id="out" dir="ltr"></pre>
       <details><summary data-i18n="apiTitle"></summary><pre id="apiDoc" dir="ltr"></pre></details>
@@ -73,6 +75,12 @@
     <div class="tab" id="tab-scr" hidden>
       <div class="row"><button class="btn primary" id="scrRun" data-i18n="scan"></button><span id="scrProg" class="hint"></span></div>
       <div id="scrBox"></div>
+    </div>
+    <div class="tab" id="tab-alerts" hidden>
+      <div class="row"><select id="alKind"></select><input id="alVal" type="number" step="any" inputmode="decimal" style="width:90px"></div>
+      <div class="row"><button class="btn primary" id="alAdd"></button><button class="btn" id="alPerm"></button><label class="chk"><input type="checkbox" id="alSound" checked><span id="alSoundLbl"></span></label></div>
+      <div id="alList"></div>
+      <div class="hint" id="alHint"></div>
     </div>
   </aside>
 </main>

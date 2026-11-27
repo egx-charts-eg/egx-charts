@@ -17,7 +17,7 @@ const I18N = {
     dataNote: 'بيانات يومية (EOD) – آخر تحديث', noData: 'لا توجد بيانات لهذا الرمز', unknown: 'رمز غير معروف',
     t_cursor: 'مؤشر', t_trend: 'خط اتجاه', t_ray: 'شعاع', t_hline: 'خط أفقي', t_vline: 'خط رأسي', t_rect: 'مستطيل', t_fib: 'فيبوناتشي', t_text: 'نص', t_measure: 'قياس', t_magnet: 'مغناطيس', t_color: 'اللون',
     enterText: 'اكتب النص ثم Enter', ex: 'أمثلة سكربت', savedPh: 'سكربتاتي المحفوظة', saveName: 'اسم السكربت؟', ranges: ['شهر', '3 شهور', '6 شهور', 'سنة', '3 سنين', '5 سنين', 'الكل'],
-    noIntra: 'لا توجد بيانات داخل اليوم لهذا السهم', tf: { '15m': '15 دقيقة', '1h': 'ساعة', '2h': 'ساعتان', '3h': '3 ساعات', '4h': '4 ساعات', D: 'يوم', W: 'أسبوع', M: 'شهر', Q: 'ربع', Y: 'سنة' }, types: { candle: 'شموع', bar: 'أعمدة', line: 'خط', area: 'مساحة' },
+    noIntra: 'لا توجد بيانات داخل اليوم لهذا السهم', alerts: 'تنبيهات', tf: { '15m': '15 دقيقة', '1h': 'ساعة', '2h': 'ساعتان', '3h': '3 ساعات', '4h': '4 ساعات', D: 'يوم', W: 'أسبوع', M: 'شهر', Q: 'ربع', Y: 'سنة' }, types: { candle: 'شموع', bar: 'أعمدة', line: 'خط', area: 'مساحة' },
     stat: { last: 'آخر سعر', date: 'آخر تاريخ بيانات', since: 'أول تاريخ بيانات', d1: 'يومي', w1: 'أسبوع (5 جلسات)', m1: 'شهر (21)', m3: '3 شهور (63)', m6: '6 شهور (126)', y1: 'سنة (252)', ytd: 'منذ بداية السنة', hi: 'أعلى سعر 52 أسبوع', lo: 'أقل سعر 52 أسبوع', fromHi: 'البعد عن القمة', fromLo: 'البعد عن القاع', avgVol: 'متوسط الحجم 30 يوم', turn: 'متوسط قيمة التداول 30 يوم (جنيه)', vol: 'التذبذب السنوي', dd: 'أقصى تراجع (سنة)', rsi: 'RSI(14)', atr: 'ATR(14) كنسبة', trend: 'الاتجاه', up: 'صاعد (50 > 200)', down: 'هابط (50 < 200)', ratio: 'النسبة الحالية', ratioPct: 'مكان النسبة في آخر سنة', corr: 'الارتباط (60 جلسة)', corr1: 'الارتباط (سنة)', cmp: 'مقارنة مع', note: 'مفيش نسب مالية (P/E مثلاً) في المصدر المجاني. تقدر تحسب أي نسبة سعرية بالسكربت.' },
     cols: { sym: 'الرمز', trend: 'الاتجاه' }, filters: ['الكل', 'RSI أقل من 30', 'RSI أكبر من 70', 'قريب من القمة (أقل من 5%)', 'صاعد (50>200)', 'هابط (50<200)'] },
   en: { search: 'Search symbol (COMI)', log: 'Log', indicators: 'Indicators', script: 'Script', stats: 'Stats', drawings: 'Drawings', screener: 'Screener',
@@ -28,7 +28,7 @@ const I18N = {
     dataNote: 'Daily (EOD) data, fetched', noData: 'No data for this symbol', unknown: 'Unknown symbol',
     t_cursor: 'Cursor', t_trend: 'Trend line', t_ray: 'Ray', t_hline: 'Horizontal line', t_vline: 'Vertical line', t_rect: 'Rectangle', t_fib: 'Fib retracement', t_text: 'Text', t_measure: 'Measure', t_magnet: 'Magnet', t_color: 'Color',
     enterText: 'Type text, Enter', ex: 'Script examples', savedPh: 'My saved scripts', saveName: 'Script name?', ranges: ['1M', '3M', '6M', '1Y', '3Y', '5Y', 'All'],
-    noIntra: 'No intraday data for this symbol', tf: { '15m': '15 minutes', '1h': '1 hour', '2h': '2 hours', '3h': '3 hours', '4h': '4 hours', D: 'Day', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'Year' }, types: { candle: 'Candles', bar: 'Bars', line: 'Line', area: 'Area' },
+    noIntra: 'No intraday data for this symbol', alerts: 'Alerts', tf: { '15m': '15 minutes', '1h': '1 hour', '2h': '2 hours', '3h': '3 hours', '4h': '4 hours', D: 'Day', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'Year' }, types: { candle: 'Candles', bar: 'Bars', line: 'Line', area: 'Area' },
     stat: { last: 'Last close', date: 'Last data date', since: 'First data date', d1: '1 day', w1: '1 week (5 sessions)', m1: '1 month (21)', m3: '3 months (63)', m6: '6 months (126)', y1: '1 year (252)', ytd: 'Year to date', hi: '52w high', lo: '52w low', fromHi: 'From high', fromLo: 'From low', avgVol: 'Avg volume 30d', turn: 'Avg turnover 30d (EGP)', vol: 'Annualised volatility', dd: 'Max drawdown (1y)', rsi: 'RSI(14)', atr: 'ATR(14) % of price', trend: 'Trend', up: 'Up (50 > 200)', down: 'Down (50 < 200)', ratio: 'Current ratio', ratioPct: 'Ratio percentile (1y)', corr: 'Correlation (60 sessions)', corr1: 'Correlation (1y)', cmp: 'Compared with', note: 'No fundamental ratios (e.g. P/E) in the free data source. Any price-based ratio can be computed in a script.' },
     cols: { sym: 'Symbol', trend: 'Trend' }, filters: ['All', 'RSI below 30', 'RSI above 70', 'Near 52w high (<5%)', 'Uptrend (50>200)', 'Downtrend (50<200)'] }
 };
@@ -188,7 +188,7 @@ async function setSymbol(id, keepRange) {
   S.sym = id; store.set('sym', id); $('#symInput').value = id;
   setName();
   document.title = id + ' | EGX Charts';
-  refreshBars(); if (!keepRange) applyRange(); loadDrawings(); selected = null; renderDrawList(); redrawSoon(); renderStats();
+  refreshBars(); if (!keepRange) applyRange(); loadDrawings(); selected = null; renderDrawList(); redrawSoon(); renderStats(); checkAlerts(false);
 }
 function setName() { const m = symMap[S.sym]; if (m) $('#symName').textContent = (lang === 'ar' ? m.ar : m.en) + ' · ' + (lang === 'ar' ? m.secAr : m.secEn) + (m.src === 'hourly' ? (lang === 'ar' ? ' · (يومي مشتق من بيانات الساعة)' : ' · (daily derived from hourly)') : '') + (!m.src ? (lang === 'ar' ? ' · لا توجد بيانات أسعار' : ' · no price data') : ''); }
 function refreshBars() {
@@ -212,7 +212,7 @@ function applyLang() {
   document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = T()[e.dataset.i18n]);
   document.querySelectorAll('[data-i18n-ph]').forEach(e => e.placeholder = T()[e.dataset.i18nPh]);
-  buildTop(); buildTools(); buildSelects(); $('#apiDoc').textContent = API_DOC; setName();
+  buildTop(); buildTools(); buildSelects(); if (typeof labelsIO === 'function') { labelsIO(); buildAlertsUI(); } $('#apiDoc').textContent = API_DOC; setName();
   if (S.daily.length) { renderStats(); renderDrawList(); }
   if (scrRows) renderScreener();
 }
@@ -456,8 +456,78 @@ $('#saveBtn').onclick = () => { const n = prompt(T().saveName); if (!n) return; 
 $('#savedLoad').onclick = () => { const sv = store.get('scripts', {}), k = $('#savedSel').value; if (k && sv[k]) { $('#code').value = sv[k]; store.set('code', sv[k]); } };
 $('#savedDel').onclick = () => { const sv = store.get('scripts', {}), k = $('#savedSel').value; if (k) { delete sv[k]; store.set('scripts', sv); refreshSaved(); } };
 
+
+/* ---------------- script export / import ---------------- */
+const L2 = (ar, en) => lang === 'ar' ? ar : en;
+function labelsIO() { $('#expScripts').textContent = L2('تصدير السكربتات', 'Export scripts'); $('#impScripts').textContent = L2('استيراد', 'Import'); }
+$('#expScripts').onclick = () => {
+  const data = { app: 'egx-charts', scripts: store.get('scripts', {}), current: $('#code').value };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); a.download = 'egx-scripts.json'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+$('#impScripts').onclick = () => $('#impFile').click();
+$('#impFile').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { const d = JSON.parse(await f.text()); if (!d || typeof d.scripts !== 'object') throw new Error('bad file'); const sv = store.get('scripts', {}); let n = 0; for (const k of Object.keys(d.scripts)) { if (typeof d.scripts[k] === 'string') { sv[k] = d.scripts[k]; n++; } } store.set('scripts', sv); refreshSaved(); logOut(L2('تم استيراد ', 'Imported ') + n + L2(' سكربت', ' scripts')); }
+  catch (err) { logOut(L2('ملف غير صالح: ', 'Invalid file: ') + err.message, true); }
+  e.target.value = '';
+};
+
+/* ---------------- alerts (checked while the page is open) ---------------- */
+const AL_KINDS = { 'price>': ['السعر أعلى من', 'Price above'], 'price<': ['السعر أقل من', 'Price below'], 'rsi>': ['RSI(14) أعلى من', 'RSI(14) above'], 'rsi<': ['RSI(14) أقل من', 'RSI(14) below'], 'smaUp': ['السعر يخترق SMA لأعلى (الفترة)', 'Price crosses above SMA (period)'], 'smaDn': ['السعر يخترق SMA لأسفل (الفترة)', 'Price crosses below SMA (period)'] };
+let alerts = store.get('alerts', []);
+const saveAlerts = () => store.set('alerts', alerts);
+function alKindLabel(k) { return AL_KINDS[k][lang === 'ar' ? 0 : 1]; }
+function buildAlertsUI() {
+  const sel = $('#alKind'); const cur = sel.value; sel.innerHTML = ''; Object.keys(AL_KINDS).forEach(k => sel.append(el('option', { value: k }, alKindLabel(k)))); if (cur) sel.value = cur;
+  $('#alVal').placeholder = L2('القيمة', 'value'); $('#alAdd').textContent = L2('+ أضف تنبيه للسهم الحالي', '+ Alert on current symbol');
+  $('#alPerm').textContent = L2('تفعيل إشعارات المتصفح', 'Enable browser notifications'); $('#alSoundLbl').textContent = L2('صوت', 'sound');
+  $('#alHint').textContent = L2('التنبيهات تعمل والصفحة مفتوحة فقط (تتحقق كل 5 دقائق من أحدث بيانات الموقع وعند فتح السهم). تُحفظ في هذا المتصفح. البيانات متأخرة وليست لحظية.', 'Alerts only work while this page is open (checked every 5 minutes against the latest site data, and when you open a symbol). Saved in this browser. Data is delayed, not live.');
+  renderAlerts();
+}
+function renderAlerts() {
+  const box = $('#alList'); box.innerHTML = '';
+  if (!alerts.length) { box.append(el('div', { class: 'hint' }, L2('لا توجد تنبيهات', 'No alerts'))); return; }
+  alerts.forEach(a => box.append(el('div', { class: 'ind' }, el('span', { class: 'nm' }, a.sym), el('span', {}, alKindLabel(a.kind) + ' ' + a.val), el('span', { class: 'v' }, a.fired ? '✔ ' + a.fired : L2('نشط', 'active')), a.fired ? el('button', { title: 're-arm', onclick: () => { a.fired = null; saveAlerts(); renderAlerts(); } }, '↻') : el('span'), el('button', { title: 'remove', onclick: () => { alerts = alerts.filter(x => x !== a); saveAlerts(); renderAlerts(); } }, '×'))));
+}
+$('#alAdd').onclick = () => { const v = parseFloat($('#alVal').value); if (!isFinite(v) || v <= 0) { $('#alVal').focus(); return; } alerts.push({ id: Date.now(), sym: S.sym, kind: $('#alKind').value, val: v, fired: null }); saveAlerts(); renderAlerts(); checkAlerts(); };
+$('#alPerm').onclick = async () => { if (!('Notification' in window)) { alert(L2('المتصفح لا يدعم الإشعارات', 'Notifications not supported in this browser')); return; } const r = await Notification.requestPermission(); $('#alPerm').textContent = L2('الإشعارات: ', 'Notifications: ') + r; };
+function fireAlert(a, msg) {
+  a.fired = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16).replace('T', ' '); saveAlerts(); renderAlerts();
+  const text = a.sym + ': ' + msg;
+  let shown = false; try { if ('Notification' in window && Notification.permission === 'granted') { new Notification('EGX Charts', { body: text }); shown = true; } } catch { }
+  if ($('#alSound').checked) { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(); o.connect(ac.destination); o.frequency.value = 880; o.start(); setTimeout(() => { o.stop(); ac.close(); }, 400); } catch { } }
+  const t = el('div', { class: 'toast' }, text); document.body.append(t); setTimeout(() => t.remove(), 15000); t.onclick = () => t.remove();
+  return shown;
+}
+function evalAlert(a, bars) {
+  const c = bars.map(b => b.close), n = c.length; if (n < 2) return null; const last = c[n - 1];
+  switch (a.kind) {
+    case 'price>': return last > a.val ? L2('السعر ', 'price ') + last + L2(' أعلى من ', ' above ') + a.val : null;
+    case 'price<': return last < a.val ? L2('السعر ', 'price ') + last + L2(' أقل من ', ' below ') + a.val : null;
+    case 'rsi>': { const r = TA.rsi(c, 14)[n - 1]; return r != null && r > a.val ? 'RSI ' + r.toFixed(1) + ' > ' + a.val : null; }
+    case 'rsi<': { const r = TA.rsi(c, 14)[n - 1]; return r != null && r < a.val ? 'RSI ' + r.toFixed(1) + ' < ' + a.val : null; }
+    case 'smaUp': { const m = TA.sma(c, Math.round(a.val)), x = TA.crossover(c, m); return x[n - 1] ? L2('السعر اخترق SMA ', 'price crossed above SMA ') + a.val : null; }
+    case 'smaDn': { const m = TA.sma(c, Math.round(a.val)), x = TA.crossunder(c, m); return x[n - 1] ? L2('السعر كسر SMA ', 'price crossed below SMA ') + a.val : null; }
+  }
+  return null;
+}
+function loadFresh(path) { return new Promise((res) => { const s = document.createElement('script'); s.src = path + '?t=' + Date.now(); s.onload = () => { s.remove(); res(true); }; s.onerror = () => { s.remove(); res(false); }; document.head.append(s); }); }
+async function checkAlerts(fresh) {
+  const act = alerts.filter(a => !a.fired); if (!act.length) return;
+  for (const sym of [...new Set(act.map(a => a.sym))]) {
+    let bars = null;
+    try {
+      if (fresh && location.protocol.startsWith('http')) { await loadFresh('data/' + sym + '.js'); }
+      bars = await loadDaily(sym);
+      if (fresh && location.protocol.startsWith('http') && INTRA_IDS.has(sym)) { delete (window.EGX_INTRA || {})[sym]; const im = await loadIntra(sym).catch(() => null); const m = im && im.m && im.m.length ? im.m : null; if (m) { const lastD = bars.at(-1).time, ld = new Date(m.at(-1)[0] * 1000).toISOString().slice(0, 10); if (ld >= lastD) bars = bars.slice(0, ld === lastD ? -1 : undefined).concat([{ time: ld, open: m.at(-1)[1], high: m.at(-1)[2], low: m.at(-1)[3], close: m.at(-1)[4], volume: 0 }]); } }
+    } catch { continue; }
+    for (const a of act.filter(x => x.sym === sym)) { const msg = evalAlert(a, bars); if (msg) fireAlert(a, msg); }
+  }
+}
+setInterval(() => checkAlerts(true), 300000);
+
 /* ---------------- boot ---------------- */
-applyLang();
+applyLang(); labelsIO(); buildAlertsUI();
 setSymbol(symMap[S.sym] ? S.sym : SYMS[0].id);
 loop();
 window.addEventListener('resize', redrawSoon);
