@@ -38,7 +38,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp -r index.html style.css app.js ta.js vendor data _site/
+          cp -r index.html style.css app.js ta.js NOTICE.txt vendor data _site/
           cp dist/egx-charts.html _site/egx-charts.html
           V=${GITHUB_SHA::8}
           sed -i -E "s/(href=\"style.css|src=\"(vendor\/lightweight-charts|ta|data\/symbols|data\/intra|app)\.js)\"/\1?v=$V\"/" _site/index.html
