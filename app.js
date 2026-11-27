@@ -39,10 +39,14 @@ const T = () => I18N[lang];
 /* ---------------- data ---------------- */
 const SYMS = window.EGX_SYMBOLS || [];
 const symMap = Object.fromEntries(SYMS.map(s => [s.id, s]));
+const splitsOf = (id) => (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].splits) || [];
+const adjOn = () => store.get('adj', true);
+function adjFn(id) { const sp = adjOn() ? splitsOf(id) : []; if (!sp.length) return null; return (d) => { let f = 1; for (const q of sp) if (q[0] > d) f *= q[1]; return f; }; }
+const r4 = (x) => Math.round(x * 10000) / 10000;
 function loadDaily(id) {
   id = id.toUpperCase();
   if (!symMap[id]) return Promise.reject(new Error(T().unknown + ': ' + id));
-  if (window.EGX_DATA && window.EGX_DATA[id]) return Promise.resolve(window.EGX_DATA[id].rows.map(r => ({ time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] })));
+  if (window.EGX_DATA && window.EGX_DATA[id]) { const af = adjFn(id); return Promise.resolve(window.EGX_DATA[id].rows.map(r => { const f = af ? af(r[0]) : 1; return f === 1 ? { time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] } : { time: r[0], open: r4(r[1] / f), high: r4(r[2] / f), low: r4(r[3] / f), close: r4(r[4] / f), volume: Math.round(r[5] * f) }; })); }
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'data/' + id + '.js'; s.onload = () => res(loadDaily(id)); s.onerror = () => rej(new Error(T().noData + ': ' + id)); document.head.append(s); });
 }
 const days = (d) => typeof d === 'number' ? d / 86400 : Date.parse(d + 'T00:00:00Z') / 86400000;
@@ -54,11 +58,11 @@ function loadIntra(id) {
   if (window.EGX_INTRA[id]) return Promise.resolve(window.EGX_INTRA[id]);
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'data/i/' + id + '.js'; s.onload = () => res(window.EGX_INTRA[id]); s.onerror = () => rej(new Error(T().noIntra)); document.head.append(s); });
 }
-const toBars = (rows) => rows.map(r => ({ time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] }));
+const toBars = (rows, af) => rows.map(r => { const f = af ? af(new Date(r[0] * 1000).toISOString().slice(0, 10)) : 1; return f === 1 ? { time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] } : { time: r[0], open: r4(r[1] / f), high: r4(r[2] / f), low: r4(r[3] / f), close: r4(r[4] / f), volume: Math.round(r[5] * f) }; });
 function intraBars(tf) {
   if (!S.intra) return [];
-  if (tf === '15m') return toBars(S.intra.m);
-  const h = toBars(S.intra.h); if (tf === '1h') return h;
+  if (tf === '15m') return toBars(S.intra.m, adjFn(S.sym));
+  const h = toBars(S.intra.h, adjFn(S.sym)); if (tf === '1h') return h;
   const n = tf === '2h' ? 2 : tf === '3h' ? 3 : 4, out = []; let day = null, cnt = 0, cur = null;
   for (const b of h) { const d = new Date(b.time * 1000).toISOString().slice(0, 10); if (d !== day) { day = d; cnt = 0; cur = null; } if (cnt % n === 0) { cur = { ...b }; out.push(cur); } else { cur.high = Math.max(cur.high, b.high); cur.low = Math.min(cur.low, b.low); cur.close = b.close; cur.volume += b.volume; } cnt++; }
   return out;
@@ -201,10 +205,25 @@ async function setSymbol(id, keepRange) {
   refreshBars(); if (!keepRange) applyRange(); loadDrawings(); selected = null; renderDrawList(); redrawSoon(); renderStats(); checkAlerts(false);
 }
 function setName() { const m = symMap[S.sym]; if (m) $('#symName').textContent = (lang === 'ar' ? m.ar : m.en) + ' · ' + (lang === 'ar' ? m.secAr : m.secEn) + (m.src === 'hourly' ? (lang === 'ar' ? ' · (يومي مشتق من بيانات الساعة)' : ' · (daily derived from hourly)') : '') + (!m.src ? (lang === 'ar' ? ' · لا توجد بيانات أسعار' : ' · no price data') : ''); }
+function updStamp() {
+  try {
+    const m = symMap[S.sym], b = S.bars && S.bars.at(-1); if (!m || !b) return; const ar = lang === 'ar', intra = isIntra(S.tf);
+    const lt = typeof b.time === 'number' ? new Date(b.time * 1000).toISOString().slice(0, 16).replace('T', ' ') + (ar ? ' (توقيت القاهرة)' : ' Cairo') : b.time;
+    const f = (window.EGX_FETCHED || '').slice(0, 16).replace('T', ' ');
+    const kind = intra ? (ar ? 'بيانات داخل اليوم متأخرة (15 دقيقة أو أكثر) وليست لحظية' : 'Intraday data, delayed (15 min or more), not real-time') : m.src === 'hourly' ? (ar ? 'إغلاق يومي مشتق من شموع الساعة، وليس لحظياً' : 'End-of-day closes built from hourly bars, not real-time') : (ar ? 'إغلاق يومي (EOD)، وليس لحظياً' : 'End-of-day close, not real-time');
+    const spl = splitsOf(S.sym).length, ai = splitsOf(S.sym).filter(q => q[2] === 'auto').length;
+    const adj = spl ? (adjOn() ? (ar ? ` · معدّل للتجزئة (${spl}${ai ? '، منها ' + ai + ' مستنتجة' : ''})` : ` · split-adjusted (${spl}${ai ? ', ' + ai + ' inferred' : ''})`) : (ar ? ' · أسعار خام بدون تعديل' : ' · raw prices, not adjusted')) : '';
+    $('#dataNote').textContent = (ar ? 'آخر شمعة: ' : 'Last bar: ') + lt + ' · ' + kind + (f ? (ar ? ' · جُلبت ' : ' · fetched ') + f + ' UTC' : '') + adj;
+    $('#dataNote').title = $('#dataNote').textContent;
+    let a = document.getElementById('adjBox');
+    if (!a) { a = el('label', { class: 'chk', id: 'adjBox' }, el('input', { type: 'checkbox', id: 'adjChk' }), el('span', { id: 'adjTxt' })); document.getElementById('logScale').parentElement.after(a); document.getElementById('adjChk').onchange = (e) => { store.set('adj', e.target.checked); setSymbol(S.sym, true); }; }
+    document.getElementById('adjChk').checked = adjOn(); document.getElementById('adjTxt').textContent = ar ? 'تعديل التجزئة' : 'Split-adjust'; a.style.display = spl ? '' : 'none';
+  } catch (e) { }
+}
 function refreshBars() {
   chart.applyOptions({ timeScale: { timeVisible: isIntra(S.tf), secondsVisible: false } });
   S.bars = isIntra(S.tf) ? intraBars(S.tf) : aggregate(S.daily, S.tf); S.idxByTime = {}; S.bars.forEach((b, i) => S.idxByTime[b.time] = i);
-  makeMain(); rebuildExtras(); legendFor(S.bars.length - 1); updateIndValues(S.bars.at(-1).time);
+  makeMain(); rebuildExtras(); legendFor(S.bars.length - 1); updateIndValues(S.bars.at(-1).time); updStamp();
 }
 
 /* ---------------- UI wiring ---------------- */
@@ -214,9 +233,9 @@ function buildTop() {
   const ty = $('#typeGroup'); ty.innerHTML = '';
   [['candle', '🕯'], ['bar', '▥'], ['line', '📈'], ['area', '◭']].forEach(([k, ic]) => ty.append(el('button', { class: S.type === k ? 'on' : '', title: T().types[k], onclick: () => { S.type = k; store.set('type', k); buildTop(); makeMain(); rebuildExtras(); redrawSoon(); } }, ic)));
   const rs = $('#rangeSel'); rs.innerHTML = ''; T().ranges.forEach((r, i) => rs.append(el('option', { value: i }, r))); rs.value = S.range;
-  const dl = $('#symList'); if (!dl.children.length) SYMS.forEach(s => dl.append(el('option', { value: s.id }, s.id + ' - ' + (s.en || '') + ' - ' + s.ar)));
+  const dl = $('#symList'); if (!dl.children.length) SYMS.forEach(s => dl.append(el('option', { value: s.id }, (s.secEn === 'Indices' ? '📊 ' : '') + s.id + ' - ' + (s.en || '') + ' - ' + s.ar)));
   $('#langBtn').textContent = lang === 'ar' ? 'EN' : 'ع';
-  $('#dataNote').textContent = T().dataNote + ' ' + (window.EGX_FETCHED || '').slice(0, 10);
+  updStamp();
 }
 function applyLang() {
   document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
