@@ -204,7 +204,8 @@ async function setSymbol(id, keepRange) {
   document.title = id + ' | TradinGo';
   refreshBars(); if (!keepRange) applyRange(); loadDrawings(); selected = null; renderDrawList(); redrawSoon(); renderStats(); checkAlerts(false);
 }
-function setName() { const m = symMap[S.sym]; if (m) $('#symName').textContent = (lang === 'ar' ? m.ar : m.en) + ' · ' + (lang === 'ar' ? m.secAr : m.secEn) + (m.src === 'hourly' ? (lang === 'ar' ? ' · (يومي مشتق من بيانات الساعة)' : ' · (daily derived from hourly)') : '') + (!m.src ? (lang === 'ar' ? ' · لا توجد بيانات أسعار' : ' · no price data') : ''); }
+function setName() { const m = symMap[S.sym]; if (m) $('#symName').textContent = (BADDATA[S.sym] ? '⚠ ' : '') + (lang === 'ar' ? m.ar : m.en) + ' · ' + (lang === 'ar' ? m.secAr : m.secEn) + (m.src === 'hourly' ? (lang === 'ar' ? ' · (يومي مشتق من بيانات الساعة)' : ' · (daily derived from hourly)') : '') + (!m.src ? (lang === 'ar' ? ' · لا توجد بيانات أسعار' : ' · no price data') : ''); }
+const BADDATA = { ORAS: ['بيانات غير موثوقة: السعر مختلف عن مصادر أخرى (71.05 ثابت مقابل نحو 790 جنيه في مصادر أخرى) – لا تعتمد عليه', 'UNRELIABLE DATA: price conflicts with other sources (flat 71.05 vs about 790 EGP elsewhere). Do not rely on it'] };
 function updStamp() {
   try {
     const m = symMap[S.sym], b = S.bars && S.bars.at(-1); if (!m || !b) return; const ar = lang === 'ar', intra = isIntra(S.tf);
@@ -214,6 +215,7 @@ function updStamp() {
     const spl = splitsOf(S.sym).length, ai = splitsOf(S.sym).filter(q => q[2] === 'auto').length;
     const adj = spl ? (adjOn() ? (ar ? ` · معدّل للتجزئة (${spl}${ai ? '، منها ' + ai + ' مستنتجة' : ''})` : ` · split-adjusted (${spl}${ai ? ', ' + ai + ' inferred' : ''})`) : (ar ? ' · أسعار خام بدون تعديل' : ' · raw prices, not adjusted')) : '';
     $('#dataNote').textContent = (ar ? 'آخر شمعة: ' : 'Last bar: ') + lt + ' · ' + kind + (f ? (ar ? ' · جُلبت ' : ' · fetched ') + f + ' UTC' : '') + adj;
+    const bd = BADDATA[S.sym]; if (bd) $('#dataNote').textContent = '⚠ ' + bd[ar ? 0 : 1] + ' · ' + $('#dataNote').textContent; $('#dataNote').style.color = bd ? '#ef5350' : ''; $('#dataNote').style.fontWeight = bd ? 'bold' : '';
     $('#dataNote').title = $('#dataNote').textContent;
     let a = document.getElementById('adjBox');
     if (!a) { a = el('label', { class: 'chk', id: 'adjBox' }, el('input', { type: 'checkbox', id: 'adjChk' }), el('span', { id: 'adjTxt' })); document.getElementById('logScale').parentElement.after(a); document.getElementById('adjChk').onchange = (e) => { store.set('adj', e.target.checked); setSymbol(S.sym, true); }; }
@@ -310,6 +312,11 @@ const HIST = {};
 const hist = () => HIST[dkey()] || (HIST[dkey()] = { u: [], r: [], last: null });
 const loadDrawings = () => { if (!drawings[S.sym]) drawings[S.sym] = store.get(dkey(), []); const h = hist(); if (h.last == null) h.last = JSON.stringify(drawings[S.sym]); return drawings[S.sym]; };
 const saveDrawings = () => { const h = hist(), js = JSON.stringify(drawings[S.sym]); if (h.last != null && h.last !== js) { h.u.push(h.last); if (h.u.length > 100) h.u.shift(); h.r = []; } h.last = js; store.set(dkey(), drawings[S.sym]); try { updUndo(); } catch { } };
+function pickImage(d) {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 128 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k)); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); d.img = c.toDataURL('image/png'); loadDrawings().push(d); saveDrawings(); renderDrawList(); redrawSoon(); }; im.src = fr.result; }; fr.readAsDataURL(f); };
+  inp.click();
+}
 function undoDraw() { loadDrawings(); const h = hist(); if (!h.u.length) return; h.r.push(h.last); h.last = h.u.pop(); drawings[S.sym] = JSON.parse(h.last); store.set(dkey(), drawings[S.sym]); selected = null; renderDrawList(); redrawSoon(); updUndo(); }
 function redoDraw() { loadDrawings(); const h = hist(); if (!h.r.length) return; h.u.push(h.last); h.last = h.r.pop(); drawings[S.sym] = JSON.parse(h.last); store.set(dkey(), drawings[S.sym]); selected = null; renderDrawList(); redrawSoon(); updUndo(); }
 function updUndo() { const h = hist(), u = document.getElementById('btnUndo'), r = document.getElementById('btnRedo'); if (u) u.style.opacity = h.u.length ? 1 : .35; if (r) r.style.opacity = h.r.length ? 1 : .35; }
@@ -335,6 +342,10 @@ const NEED = {}, TLAB = {}; TG.forEach(g => g.items.forEach(([k, , n, ar, en]) =
   add('pat', [['gartley', 'G', 5, 'Gartley (مع فحص النسب)', 'Gartley (ratio check)'], ['bat', 'B', 5, 'Bat (مع فحص النسب)', 'Bat (ratio check)'], ['butterfly', 'F', 5, 'Butterfly (مع فحص النسب)', 'Butterfly (ratio check)'], ['crab', 'C', 5, 'Crab (مع فحص النسب)', 'Crab (ratio check)'], ['shark', 'S', 5, 'Shark (مع فحص النسب)', 'Shark (ratio check)']]);
   add('shape', [['arc', '◜', 3, 'قوس', 'Arc'], ['curve', '∿', 3, 'منحنى', 'Curve'], ['sine', '〜', 2, 'خط جيبي', 'Sine line']]);
   add('note', [['flagmark', '⚐', 1, 'علم', 'Flag mark'], ['signpost', '🪧', 1, 'لافتة', 'Signpost']]);
+  add('chan', [['insidepf', 'ψ', 3, 'مذراة داخلية', 'Inside pitchfork']]);
+  add('fib', [['fibarcs', '◠', 2, 'أقواس فيبوناتشي', 'Fib speed arcs']]);
+  add('fc', [['gannfan', '✲', 2, 'مروحة جان', 'Gann fan']]);
+  add('note', [['image', '🖼', 1, 'صورة (ملصق)', 'Image sticker']]);
   add('fc', [['barspattern', '▥', 3, 'نمط الشموع (نسخ وإسقاط)', 'Bars pattern (copy and project)']]);
   TG.forEach(g => g.items.forEach(([k, , n, ar, en]) => { NEED[k] = n; TLAB[k] = [ar, en]; }));
 })();
@@ -483,6 +494,7 @@ function drawAutoVP(W, H) {
 function vpSummary(d) { const r = vpCompute(d, d.rows || 24); return r && r.sum ? 'POC ' + fmt(r.lo + (r.poc + 0.5) * r.step) : ''; }
 
 /* ---------------- stage 4: more tools ---------------- */
+const IMGC = {};
 const REG = { gartley: ['Gartley', [[.618, .618], [.382, .886], [1.13, 1.618], [.786, .786]]], bat: ['Bat', [[.382, .5], [.382, .886], [1.618, 2.618], [.886, .886]]], butterfly: ['Butterfly', [[.786, .786], [.382, .886], [1.618, 2.24], [1.27, 1.618]]], crab: ['Crab', [[.382, .618], [.382, .886], [2.24, 3.618], [1.618, 1.618]]], shark: ['Shark', [[1.13, 1.618], [1.618, 2.24]]] };
 function drawS4(d, P, W, H, line, ext) {
   const ty = d.type, D = d.pts, p0 = P[0], p1 = P[1], p2 = P[2], color = d.color || '#f5c542';
@@ -514,10 +526,30 @@ function drawS4(d, P, W, H, line, ext) {
   else if (ty === 'flagmark') { cx.beginPath(); cx.moveTo(p0.x, p0.y); cx.lineTo(p0.x, p0.y - 34); cx.stroke(); poly([{ x: p0.x, y: p0.y - 34 }, { x: p0.x + 22, y: p0.y - 28 }, { x: p0.x, y: p0.y - 20 }], 1); cx.beginPath(); cx.arc(p0.x, p0.y, 3, 0, 7); cx.fill(); }
   else if (ty === 'signpost') { cx.setLineDash([5, 4]); line({ x: p0.x, y: 0 }, { x: p0.x, y: H }); cx.setLineDash([]); const t = d.text || 'Signpost', w = cx.measureText(t).width + 14; cx.fillStyle = color; cx.fillRect(p0.x - w / 2, H - 30, w, 20); cx.fillStyle = '#0e1116'; cx.font = 'bold 12px system-ui'; cx.fillText(t, p0.x - w / 2 + 7, H - 16); }
   else if (ty === 'barspattern') { const i0 = findIdx(D[0].d), i1 = findIdx(D[1].d), ia = findIdx(D[2].d), a = Math.min(i0, i1), b = Math.max(i0, i1), base = S.bars[a].close, off = D[2].p - base; cx.beginPath(); let first = true; for (let i = a; i <= b; i++) { const x = chart.timeScale().logicalToCoordinate(ia + (i - a)), y = main.priceToCoordinate(S.bars[i].close + off); if (x == null || y == null) continue; first ? cx.moveTo(x, y) : cx.lineTo(x, y); first = false; } cx.stroke(); cx.setLineDash([3, 4]); cx.globalAlpha = .5; line(p0, p1); cx.globalAlpha = 1; cx.setLineDash([]); }
+  else if (ty === 'insidepf') { const M = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }, v = { x: M.x - p0.x, y: M.y - p0.y }; const A = { x: (p1.x + M.x) / 2, y: (p1.y + M.y) / 2 }, B = { x: (p2.x + M.x) / 2, y: (p2.y + M.y) / 2 }; line(p0, ext(p0, M)); [p1, p2].forEach(q => line(q, ext(q, { x: q.x + v.x, y: q.y + v.y }))); cx.globalAlpha = .7; [A, B].forEach(q => line(q, ext(q, { x: q.x + v.x, y: q.y + v.y }))); cx.globalAlpha = 1; cx.setLineDash([4, 4]); line(p1, p2); cx.setLineDash([]); }
+  else if (ty === 'fibarcs') { const r = Math.hypot(p1.x - p0.x, p1.y - p0.y), a = Math.atan2(p0.y - p1.y, p0.x - p1.x); cx.setLineDash([3, 4]); line(p0, p1); cx.setLineDash([]); [.382, .5, .618, .786, 1].forEach(l => { cx.beginPath(); cx.arc(p1.x, p1.y, r * l, a - Math.PI / 2, a + Math.PI / 2); cx.stroke(); cx.fillText(String(l), p1.x + r * l * Math.cos(a) - 14, p1.y + r * l * Math.sin(a) - 4); }); }
+  else if (ty === 'gannfan') { const dx = p1.x - p0.x, dy = p1.y - p0.y; [[1, 8, '1x8'], [1, 4, '1x4'], [1, 3, '1x3'], [1, 2, '1x2'], [1, 1, '1x1'], [2, 1, '2x1'], [3, 1, '3x1'], [4, 1, '4x1'], [8, 1, '8x1']].forEach(([a, b, nm]) => { const k = b / a; const e = ext(p0, { x: p0.x + dx, y: p0.y + dy * k }); cx.globalAlpha = nm === '1x1' ? 1 : .65; line(p0, e); cx.globalAlpha = 1; cx.fillText(nm, p0.x + dx * 1.15, p0.y + dy * k * 1.15 - 2); }); }
+  else if (ty === 'image') { const im = IMGC[d.img] || (IMGC[d.img] = (() => { const i = new Image(); i.onload = () => redrawSoon(); i.src = d.img; return i; })()); if (im.complete && im.naturalWidth) { const w = Math.min(96, im.naturalWidth), h = w * im.naturalHeight / im.naturalWidth; cx.drawImage(im, p0.x - w / 2, p0.y - h / 2, w, h); } else cx.strokeRect(p0.x - 20, p0.y - 20, 40, 40); }
   else return false;
   return true;
 }
 
+function ratioTags(d, P) {
+  const pr = d.pts.map(z => z.p), L = (i, j) => Math.abs(pr[j] - pr[i]) || 1e-9;
+  const items = []; const rg = (nm, v, lo, hi, at) => items.push([nm + ' ' + v.toFixed(3), v >= lo - .03 && v <= hi + .03, at, 1]);
+  const ck = (nm, ok, at) => items.push([nm, ok, at, 1]), inf = (nm, v, at) => items.push([nm + ' ' + v.toFixed(3), true, at, 0]);
+  if (d.type === 'cypher' && P.length >= 5) { rg('AB/XA', L(1, 2) / L(0, 1), .382, .618, 2); rg('XC ext', L(0, 3) / L(0, 1), 1.272, 1.414, 3); rg('CD/XC', L(3, 4) / L(0, 3), .786, .786, 4); }
+  else if (d.type === 'drives' && P.length >= 6) { rg('corr1', L(1, 2) / L(0, 1), .618, .786, 2); rg('drive2', L(2, 3) / L(1, 2), 1.272, 1.618, 3); rg('corr2', L(3, 4) / L(2, 3), .618, .786, 4); rg('drive3', L(4, 5) / L(3, 4), 1.272, 1.618, 5); }
+  else if (d.type === 'elliott5' && P.length >= 6) {
+    const s = pr[1] > pr[0] ? 1 : -1, w1 = L(0, 1), w3 = L(2, 3), w5 = L(4, 5);
+    ck('W2 holds above W0', s * (pr[2] - pr[0]) > 0, 2); ck('W3 not shortest', !(w3 < w1 && w3 < w5), 3); ck('W4 no overlap W1', s * (pr[4] - pr[1]) > 0, 4);
+    inf('W2/W1', L(1, 2) / w1, 2); inf('W3/W1', w3 / w1, 3); inf('W4/W3', L(3, 4) / w3, 4); inf('W5/W1', w5 / w1, 5);
+  }
+  else if (d.type === 'elliott3' && P.length >= 4) { rg('B/A', L(1, 2) / L(0, 1), .382, .886, 2); rg('C/A', L(2, 3) / L(0, 1), .618, 1.618, 3); }
+  if (!items.length) return; cx.save(); cx.font = '11px system-ui'; cx.setLineDash([]);
+  const cnt = {}; items.forEach(([t, ok, at, chk]) => { const n = cnt[at] = (cnt[at] || 0) + 1, q = P[at], txt = t + (chk ? (ok ? ' ✓' : ' ✗') : ''), w = cx.measureText(txt).width + 8, y = q.y + 14 * n + 4; cx.globalAlpha = .85; cx.fillStyle = '#0e1116'; cx.fillRect(q.x + 6, y - 12, w, 15); cx.globalAlpha = 1; cx.fillStyle = !chk ? '#9aa4b2' : ok ? '#26a69a' : '#ef5350'; cx.fillText(txt, q.x + 10, y); });
+  cx.restore();
+}
 function drawOne(d, W, H, isSel) {
   const pts = d.pts.map(toPx); if (pts.some(p => !p)) return; const color = d.color || '#f5c542'; cx.strokeStyle = color; cx.fillStyle = color; cx.lineWidth = (d.w || 1.5) + (isSel ? 1 : 0); cx.font = '12px system-ui'; cx.setLineDash(d.ls === 'dash' ? [8, 5] : d.ls === 'dot' ? [2, 4] : []);
   const ext = (a, b) => { const dx = b.x - a.x, dy = b.y - a.y; if (!dx && !dy) return b; const t = Math.max(W, H) * 20 / Math.hypot(dx, dy); return { x: a.x + dx * t, y: a.y + dy * t }; };
@@ -531,7 +563,7 @@ function drawOne(d, W, H, isSel) {
   else if (d.type === 'text') { cx.font = 'bold 13px system-ui'; cx.fillText(d.text || '', pts[0].x, pts[0].y); }
   else if (d.type === 'measure') { cx.setLineDash([5, 4]); line(pts[0], pts[1]); cx.setLineDash([]); const [a, b] = d.pts, nb = findIdx(b.d) - findIdx(a.d), ch = b.p / a.p - 1; const txt = `${pct(ch)}  (${fmt(b.p - a.p)})  ${nb} bars`; cx.fillStyle = '#0e1116'; const tw = cx.measureText(txt).width + 10; cx.fillRect(pts[1].x + 6, pts[1].y - 18, tw, 20); cx.fillStyle = color; cx.fillText(txt, pts[1].x + 11, pts[1].y - 4); }
   else if (d.type === 'vp') { drawVP(d, pts, W, H, isSel); }
-  else if (!drawS4(d, pts, W, H, line, ext)) drawMore(d, pts, W, H, line, ext);
+  else if (!drawS4(d, pts, W, H, line, ext)) { drawMore(d, pts, W, H, line, ext); if (pts.length >= 4 && ['cypher', 'drives', 'elliott5', 'elliott3'].includes(d.type)) ratioTags(d, pts); }
   if (isSel) (pts.length > 14 ? [pts[0], pts.at(-1)] : pts).forEach(p => { cx.setLineDash([]); cx.beginPath(); cx.arc(p.x, p.y, HT > 6 ? 7 : 5, 0, 7); cx.fillStyle = '#fff'; cx.fill(); cx.strokeStyle = color; cx.stroke(); });
 }
 function redraw() {
@@ -550,7 +582,7 @@ const placeClick = (e) => {
   if (S.tool === 'polyline') { const R = cv.getBoundingClientRect(), q = { x: e.clientX - R.left, y: e.clientY - R.top }; if (!pending) pending = { type: 'polyline', pts: [pt] }; else { const lp = toPx(pending.pts.at(-1)); if (lp && Math.hypot(lp.x - q.x, lp.y - q.y) < 14) { if (pending.pts.length >= 2) finishPoly(); return; } pending.pts.push(pt); } return; }
   if (S.tool === 'eraser') { const l = loadDrawings(), q = { x: e.clientX - r.left, y: e.clientY - r.top }; for (let i = l.length - 1; i >= 0; i--) if (hit(l[i], q)) { l.splice(i, 1); selected = null; saveDrawings(); renderDrawList(); redrawSoon(); break; } return; }
   if (!pending) pending = { type: S.tool, pts: [pt] }; else pending.pts.push(pt);
-  if (pending.pts.length >= NEED[pending.type]) { const d = { type: pending.type, pts: pending.pts, color: S.color }; if (/^ic\d+$/.test(d.type)) { d.icon = ICONS[+d.type.slice(2)]; d.type = 'icon'; } if (d.type === 'note' || d.type === 'callout' || d.type === 'signpost') { const tx = prompt(L2('النص', 'Text'), ''); if (tx == null) { pending = null; hover = null; redrawSoon(); return; } d.text = tx; } pending = null; hover = null; if (d.type === 'text') { askText(e.clientX - r.left, e.clientY - r.top, (t) => { if (t) { d.text = t; loadDrawings().push(d); saveDrawings(); renderDrawList(); } redrawSoon(); }); } else { loadDrawings().push(d); saveDrawings(); renderDrawList(); } setTool('cursor'); }
+  if (pending.pts.length >= NEED[pending.type]) { const d = { type: pending.type, pts: pending.pts, color: S.color }; if (/^ic\d+$/.test(d.type)) { d.icon = ICONS[+d.type.slice(2)]; d.type = 'icon'; } if (d.type === 'image') { pending = null; hover = null; pickImage(d); setTool('cursor'); return; } if (d.type === 'note' || d.type === 'callout' || d.type === 'signpost') { const tx = prompt(L2('النص', 'Text'), ''); if (tx == null) { pending = null; hover = null; redrawSoon(); return; } d.text = tx; } pending = null; hover = null; if (d.type === 'text') { askText(e.clientX - r.left, e.clientY - r.top, (t) => { if (t) { d.text = t; loadDrawings().push(d); saveDrawings(); renderDrawList(); } redrawSoon(); }); } else { loadDrawings().push(d); saveDrawings(); renderDrawList(); } setTool('cursor'); }
 };
 let pdn = null, lastUp = 0;
 cv.addEventListener('click', (e) => { if (Date.now() - lastUp < 600) return; placeClick(e); });
@@ -563,6 +595,7 @@ function hit(d, p) {
   if (d.type === 'hray') return Math.abs(p.y - q[0].y) < HT && p.x >= q[0].x - 5; if (d.type === 'cross') return Math.abs(p.y - q[0].y) < HT || Math.abs(p.x - q[0].x) < HT;
   if (d.type === 'avwap' || d.type === 'icon' || d.type === 'note') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 22;
   if (d.type === 'plabel' || d.type === 'arrowup' || d.type === 'arrowdn') return Math.abs(p.x - q[0].x) < 30 && Math.abs(p.y - q[0].y) < 20;
+  if (d.type === 'image') return Math.abs(p.x - q[0].x) < 50 && Math.abs(p.y - q[0].y) < 50;
   if (d.type === 'flagmark') return Math.abs(p.x - q[0].x) < 26 && p.y > q[0].y - 40 && p.y < q[0].y + 8;
   if (d.type === 'signpost') return Math.abs(p.x - q[0].x) < HT + 4;
   if (d.type === 'sine' && q.length > 1) { const dx = (q[1].x - q[0].x) || 1, A = (q[0].y - q[1].y) / 2, M = (q[0].y + q[1].y) / 2; return Math.abs(p.y - (M + A * Math.cos(Math.PI * (p.x - q[0].x) / dx))) < HT + 2; }
