@@ -1,0 +1,8 @@
+TradinGo
+This application uses TradingView Lightweight Charts(TM)
+Copyright (c) 2025 TradingView, Inc.
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+Source: https://github.com/tradingview/lightweight-charts
+The library is bundled unmodified as vendor/lightweight-charts.js.
+Price data: Yahoo Finance, delayed, for information only.

@@ -659,3 +659,17 @@ window.addEventListener('resize', redrawSoon);
 $('#panelBtn').onclick = () => { document.body.classList.toggle('drawer'); setTimeout(redrawSoon, 300); };
 document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => document.body.classList.add('drawer')));
 chartEl.addEventListener('pointerdown', () => { if (window.innerWidth <= 760) document.body.classList.remove('drawer'); });
+
+/* ---------------- About / licences ---------------- */
+$('#aboutBtn').onclick = () => {
+  document.querySelector('#dlg')?.remove();
+  const body = el('div', { class: 'dbody' },
+    el('h5', {}, 'TradinGo'),
+    el('p', {}, L2('منصة شارتات للبورصة المصرية. البيانات من Yahoo Finance، متأخرة وغير لحظية، وللأغراض المعلوماتية فقط وليست نصيحة استثمارية.', 'EGX charting platform. Data from Yahoo Finance: delayed, not real-time, for information only and not investment advice.')),
+    el('h5', {}, L2('التراخيص', 'Licences')),
+    el('p', {}, L2('الرسم البياني يعمل بمكتبة ', 'Charting is powered by '), el('a', { href: 'https://www.tradingview.com/', target: '_blank', rel: 'noopener' }, 'TradingView Lightweight Charts™'), ' (Apache License 2.0). © TradingView, Inc.'),
+    el('p', {}, el('a', { href: 'https://github.com/tradingview/lightweight-charts/blob/master/LICENSE', target: '_blank', rel: 'noopener' }, 'LICENSE'), ' · ', el('a', { href: 'NOTICE.txt', target: '_blank' }, 'NOTICE')));
+  const dlg = el('div', { id: 'dlg' }, el('div', { class: 'dbox' }, el('div', { class: 'dhead' }, el('b', {}, L2('حول / التراخيص', 'About / Licences')), el('span', { class: 'sp' }), el('button', { class: 'btn primary', onclick: () => dlg.remove() }, L2('تم', 'OK'))), body));
+  dlg.addEventListener('pointerdown', (e) => { if (e.target === dlg) dlg.remove(); });
+  document.body.append(dlg);
+};
