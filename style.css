@@ -103,3 +103,17 @@ td.n{direction:ltr;text-align:end}tr.clk{cursor:pointer}tr.clk:hover{background:
 #dtool input[type=color]{width:30px;height:28px;padding:0;border:0;background:none}
 #dtool select,#dtool button{background:var(--bg3);color:var(--tx);border:1px solid var(--line);border-radius:6px;height:30px;min-width:30px;font-size:14px;cursor:pointer}
 body.drawing .plg{pointer-events:none}
+/* Stage 9: card-style panel */
+#panel{margin:8px;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.35);overflow:hidden;background:linear-gradient(180deg,var(--bg2),var(--bg))}
+#tabs{gap:4px;padding:8px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);overflow-x:auto;scrollbar-width:none}
+#tabs button{border:1px solid transparent;border-radius:9px;padding:7px 4px;white-space:nowrap}
+#tabs button.on{background:var(--bg3);border-color:var(--acc);color:var(--tx)}
+#tabs button:not(.on):hover{background:rgba(255,255,255,.05)}
+@media (max-width:760px){
+  #panel{margin:0;left:8px;right:8px;bottom:8px;top:8px;width:auto;height:auto;border:1px solid var(--acc);border-radius:16px;transform:translateY(110%)}
+  body.drawer #panel{transform:none}
+  #tabs button{padding:9px 8px;font-size:13px;flex:none}
+  #tabs .xbtn{padding:4px 10px;border-radius:9px}
+}
+#tabs .xbtn{position:sticky;inset-inline-end:0;background:var(--bg2);z-index:2}
+@media (max-width:760px){#tabs{flex-wrap:wrap;overflow:visible}#tabs button{flex:1 1 28%}#tabs .xbtn{position:static;flex:0 0 auto;order:-1;background:none}}
