@@ -293,15 +293,27 @@ $('#scrRun').onclick = async () => {
   await Promise.all(SYMS.filter(m => m.src).map(async m => { try { const d = await loadDaily(m.id); if (d.length > 60) { const s = statsFor(d); rows.push({ id: m.id, ...s }); } } catch { } $('#scrProg').textContent = ++done + '/' + SYMS.length; }));
   scrRows = rows; $('#scrProg').textContent = ''; renderScreener();
 };
+function scrQ() { return ($('#scrQ') ? $('#scrQ').value : '').trim().toLowerCase(); }
+function ensureScrSearch() {
+  if ($('#scrQ')) { $('#scrQ').placeholder = lang === 'ar' ? 'ابحث عن سهم (الرمز أو الاسم)...' : 'Search a stock (symbol or name)...'; return; }
+  const i = el('input', { id: 'scrQ', type: 'search', style: 'width:100%;margin:6px 0;padding:8px 10px;box-sizing:border-box;border-radius:6px;border:1px solid var(--line);background:var(--bg3);color:var(--tx);font-size:14px', autocomplete: 'off' });
+  i.placeholder = lang === 'ar' ? 'ابحث عن سهم (الرمز أو الاسم)...' : 'Search a stock (symbol or name)...';
+  i.oninput = () => { if (scrRows) renderScreener(); };
+  $('#scrBox').before(i);
+}
+ensureScrSearch();
+document.querySelector('[data-tab="scr"]').addEventListener('click', () => { if (!scrRows) setTimeout(() => $('#scrRun').click(), 50); });
 function renderScreener() {
+  ensureScrSearch();
   const box = $('#scrBox'); box.innerHTML = ''; const sel = el('select', {}, T().filters.map((f, i) => el('option', { value: i }, f))); sel.value = scrFilter; sel.onchange = (e) => { scrFilter = +e.target.value; renderScreener(); };
   const F = [() => true, r => r.rsi < 30, r => r.rsi > 70, r => r.fromHi > -0.05, r => r.s200 != null && r.s50 > r.s200, r => r.s200 != null && r.s50 < r.s200][scrFilter];
   const cols = [['id', T().cols.sym], ['last', T().price], ['d1', T().chg], ['m1', '1M'], ['y1', '1Y'], ['rsi', 'RSI'], ['fromHi', T().fromHigh], ['turn', 'EGP/d']];
-  const data = scrRows.filter(F).sort((a, b) => { const x = a[scrSort.k] ?? -Infinity, y = b[scrSort.k] ?? -Infinity; return (x > y ? 1 : x < y ? -1 : 0) * scrSort.d; });
+  const q = scrQ(), nameOf = (r) => { const m = symMap[r.id] || {}; return (r.id + ' ' + (m.en || '') + ' ' + (m.ar || '')).toLowerCase(); };
+  const data = scrRows.filter(F).filter(r => !q || nameOf(r).includes(q)).sort((a, b) => { const x = a[scrSort.k] ?? -Infinity, y = b[scrSort.k] ?? -Infinity; return (x > y ? 1 : x < y ? -1 : 0) * scrSort.d; });
   const th = cols.map(([k, n]) => el('th', { onclick: () => { scrSort = { k, d: scrSort.k === k ? -scrSort.d : -1 }; renderScreener(); } }, n));
   const fm = { last: v => fmt(v), d1: pct, m1: pct, y1: pct, rsi: v => fmt(v, 0), fromHi: pct, turn: v => fmt(v / 1e6, 1) + 'M' };
-  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); } }, cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? r.id : fm[k](r[k])))));
-  box.append(sel, el('table', {}, el('thead', {}, el('tr', {}, th)), el('tbody', {}, trs)));
+  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); } }, cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? el('span', {}, r.id, el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((symMap[r.id] || {})[lang === 'ar' ? 'ar' : 'en'] || '').slice(0, 26))) : fm[k](r[k])))));
+  box.append(sel, el('span', { class: 'hint', style: 'margin:0 8px' }, data.length + ' / ' + scrRows.length), el('table', {}, el('thead', {}, el('tr', {}, th)), el('tbody', {}, trs)));
 }
 
 /* ---------------- drawings ---------------- */
