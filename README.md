@@ -21,8 +21,10 @@ Then refresh the page. Add stocks by editing `tools/symbols.json` (EGX code, Eng
 - Stats tab, and a screener (RSI, trend, distance from 52-week high).
 - Scripts tab: write JavaScript that plots lines, histograms, levels and markers. See "Script API reference" in the tab and the 7 examples.
 
-## Limits
-- Data is end-of-day from Yahoo Finance's public endpoint (unofficial, no licence for redistribution, can change or break). Not live. No intraday timeframes.
-- Prices are as reported, not checked against EGX's official data.
-- No fundamentals (P/E, EPS, etc.). Price-based ratios only.
-- Not investment advice.
+## Data rules (updated 2026-11-28)
+- Prices are Yahoo Finance daily bars. Default view: prices as traded (split-adjusted only). Optional toggle "Dividend-adjust" matches TradingView's adjusted history (factors verified against Yahoo's adjusted close).
+- The refresh drops no-trade bars (volume 0), the corrupt 2011 closure window, and repairs inconsistent OHLC (open outside the day's range).
+- Opens of older candles from Yahoo may equal the previous close. High, low, close and volume are actual. The newest bar's open is real.
+- A stock with no real trade in the 14 days before the latest market session, no trades at all, or a last price far from a second source gets no chart (shown as "no reliable data"), never old prices.
+- The latest close is compared with TradingView's public scanner as a second source. A gap over 0.5% shows a warning on that stock.
+- Not live, not investment advice. Check the price on your broker screen before trading.

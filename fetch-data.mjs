@@ -28,36 +28,95 @@ function fitSplits(rows, list) {
   }
   return out.sort((a, b) => a[0] < b[0] ? -1 : 1);
 }
+// Cleaning: no-trade bars (volume 0) are not candles; the 2011 closure window and isolated wrong-scale rows are corrupt; OHLC must be consistent.
+const CLOSURE = ['2011-01-27', '2011-03-22'];
+function clean(rows, st) {
+  let a = rows.filter(r => r[5] > 0 && !(r[0] >= CLOSURE[0] && r[0] <= CLOSURE[1])); st.zero += rows.length - a.length;
+  const keep = [];
+  for (let i = 0; i < a.length; i++) {
+    const p = keep.length ? keep[keep.length - 1][4] : null, n = a[i + 1] ? a[i + 1][4] : null, c = a[i][4];
+    if (p && n) { const lo = Math.min(p, n), hi = Math.max(p, n); if (hi / lo < 1.25 && (c / hi > 2 || c / lo < 0.5)) { st.spike++; continue; } }
+    keep.push(a[i]);
+  }
+  let prevC = null;
+  for (const r of keep) {
+    let [d, o, h, l, c, v] = r; const isLast = r === keep[keep.length - 1];
+    if (!(c > 0)) continue;
+    const carried = !isLast && prevC != null && Math.abs(o - prevC) < 1e-6; // the newest bar's open is a real print (matches the second source), so widen the range instead of moving the open
+    h = Math.max(h, c); l = Math.min(l, c); if (l > h) { const t = l; l = h; h = t; }
+    if (o > h || o < l) { if (carried || !(o > 0)) { o = Math.min(Math.max(o, l), h); st.openClamp++; } else { h = Math.max(h, o); l = Math.min(l, o); st.rangeWiden++; } }
+    r[1] = r3(o); r[2] = r3(h); r[3] = r3(l); prevC = c;
+  }
+  return keep;
+}
+// Dividend events -> multiplicative factors (1 - dividend / previous raw close), in raw (as traded) price units. Yahoo gives dividends in split-adjusted units.
+function divFactors(x, rows, splits) {
+  const out = [];
+  for (const [k, v] of Object.entries(x.events?.dividends || {})) {
+    const ex = cairoDate(+k); if (!(v.amount > 0)) continue;
+    let i = rows.findIndex(r => r[0] >= ex); if (i < 1) continue; const prev = rows[i - 1][4];
+    let sf = 1; for (const q of splits) if (q[0] > ex) sf *= q[1];
+    const ratio = v.amount * sf / prev; if (!(ratio > 0.0005 && ratio < 0.5)) continue; out.push([ex, Math.round((1 - ratio) * 1e6) / 1e6]);
+  }
+  return out.sort((a, b) => a[0] < b[0] ? -1 : 1);
+}
+const CS = { zero: 0, spike: 0, openClamp: 0, rangeWiden: 0 };
 async function getJson(url) { for (let k = 0; k < 3; k++) { try { const r = await fetch(url, H); return await r.json(); } catch { await new Promise(r => setTimeout(r, 800)); } } return null; }
 async function daily(tk) {
-  const j = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${tk}.CA?period1=1230768000&period2=${Math.floor(Date.now() / 1000) + 86400}&interval=1d&events=splits`);
+  const j = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${tk}.CA?period1=1230768000&period2=${Math.floor(Date.now() / 1000) + 86400}&interval=1d&events=div%2Csplits`);
   const x = j?.chart?.result?.[0]; if (!x?.timestamp || x.timestamp.length < 30) return null; const q = x.indicators.quote[0], m = new Map();
   x.timestamp.forEach((t, i) => { if (q.close[i] == null || q.open[i] == null) return; const d = cairoDate(t); m.set(d, [d, r3(q.open[i]), r3(q.high[i]), r3(q.low[i]), r3(q.close[i]), q.volume[i] || 0]); });
-  const rr = [...m.values()].sort((a, b) => a[0] < b[0] ? -1 : 1); return { rows: rr, src: 'daily', splits: fitSplits(rr, getSplits(x)) };
+  const rr = clean([...m.values()].sort((a, b) => a[0] < b[0] ? -1 : 1), CS); const sp = fitSplits(rr, getSplits(x)); return { rows: rr, src: 'daily', splits: sp, divs: divFactors(x, rr, sp) };
 }
 async function derived(isin) {
-  const j = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${isin}?range=730d&interval=60m&events=splits`);
+  const j = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${isin}?range=730d&interval=60m&events=div%2Csplits`);
   const x = j?.chart?.result?.[0]; if (!x?.timestamp || x.timestamp.length < 30) return null; const q = x.indicators.quote[0], by = new Map();
   x.timestamp.forEach((t, i) => { if (q.close[i] == null || q.open[i] == null) return; const d = cairoDate(t), b = by.get(d); if (!b) by.set(d, [d, q.open[i], q.high[i], q.low[i], q.close[i], q.volume[i] || 0]); else { b[2] = Math.max(b[2], q.high[i]); b[3] = Math.min(b[3], q.low[i]); b[4] = q.close[i]; b[5] += q.volume[i] || 0; } });
-  const rows = [...by.values()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(r => [r[0], r3(r[1]), r3(r[2]), r3(r[3]), r3(r[4]), r[5]]);
-  return rows.length >= 30 ? { rows, src: 'hourly', splits: fitSplits(rows, getSplits(x)) } : null;
+  const rows = [...by.values()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(r => [r[0], r3(r[1]), r3(r[2]), r3(r[3]), r3(r[4]), r[5]]).filter(r => r[4] > 0);
+  const rr = clean(rows, CS); const sp = fitSplits(rr, getSplits(x));
+  return rr.length >= 30 ? { rows: rr, src: 'hourly', splits: sp, divs: divFactors(x, rr, sp) } : null;
 }
-const meta = []; let idx = 0, ok = 0;
+const meta = []; const results = new Map(); let idx = 0;
 async function worker() {
   while (idx < U.length) {
     const u = U[idx++]; const file = new URL(u.id + '.js', out);
     let res = null;
     if (only.length && !only.includes(u.id)) { if (fs.existsSync(file)) { const m = fs.readFileSync(file, 'utf8').match(/"src":"(\w+)"/); res = { keep: true, src: m ? m[1] : 'daily' }; } }
-    else { res = u.daily ? await daily(u.id) : null; if (!res && u.isin) res = await derived(u.isin); if (res) fs.writeFileSync(file, `window.EGX_DATA=window.EGX_DATA||{};window.EGX_DATA[${JSON.stringify(u.id)}]=${JSON.stringify({ currency: 'EGP', src: res.src, rows: res.rows, splits: res.splits || [] })};`); }
-    meta.push({ id: u.id, en: u.en, ar: u.ar, secEn: u.secEn, secAr: u.secAr, src: res ? res.src : null });
-    if (res) ok++;
+    else { res = u.daily ? await daily(u.id) : null; if (!res && u.isin) res = await derived(u.isin); }
+    if (res && !res.keep) { fs.writeFileSync(file, `window.EGX_DATA=window.EGX_DATA||{};window.EGX_DATA[${JSON.stringify(u.id)}]=${JSON.stringify({ currency: 'EGP', src: res.src, rows: res.rows, splits: res.splits || [], divs: res.divs || [] })};`); res = { src: res.src, last: res.rows.length ? res.rows[res.rows.length - 1] : null, splits: res.splits }; }
+    results.set(u.id, res);
     await new Promise(r => setTimeout(r, 120));
   }
 }
 await Promise.all([worker(), worker(), worker()]);
-const order = new Map(U.map((u, i) => [u.id, i])); meta.sort((a, b) => order.get(a.id) - order.get(b.id));
-fs.writeFileSync(new URL('./symbols.js', out), `window.EGX_SYMBOLS=${JSON.stringify(meta)};window.EGX_FETCHED=${JSON.stringify(new Date().toISOString())};`);
-console.log('listed', U.length, 'with data', meta.filter(m => m.src).length, 'derived', meta.filter(m => m.src === 'hourly').length, 'no data', meta.filter(m => !m.src).length);
+// Freshness: a stock whose last real trade is more than STALE_DAYS older than the latest market session has no reliable current price, so it gets no chart.
+const STALE_DAYS = 14;
+const lastOf = (r) => r && r.last ? r.last[0] : null;
+const cnt = new Map(); for (const r of results.values()) { const d = lastOf(r); if (d) cnt.set(d, (cnt.get(d) || 0) + 1); }
+const marketLast = [...cnt.entries()].filter(e => e[1] >= 20).map(e => e[0]).sort().pop();
+const dayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+// Second-source check against TradingView's public scanner (verification only, nothing from it is stored except a pass/fail flag and the percent gap).
+let tv = {};
+try { const j = await (await fetch('https://scanner.tradingview.com/egypt/scan', { method: 'POST', headers: { 'content-type': 'application/json', 'User-Agent': 'Mozilla/5.0' }, body: JSON.stringify({ columns: ['name', 'close'], range: [0, 1000] }) })).json(); for (const d of j.data) tv[d.d[0]] = d.d[1]; } catch (e) { console.log('tv check unavailable', e.message); }
+const report = { stale: [], diverge: [] };
+for (const u of U) {
+  const res = results.get(u.id); const m = { id: u.id, en: u.en, ar: u.ar, secEn: u.secEn, secAr: u.secAr, src: res ? res.src : null };
+  if (res && !res.keep) {
+    const last = lastOf(res); m.last = last;
+    if (!last) { m.src = null; m.stale = ''; report.stale.push(u.id + ' no real trades'); }
+    else if (marketLast && dayDiff(last, marketLast) > STALE_DAYS) { m.src = null; m.stale = last; report.stale.push(u.id + ' ' + last); }
+    else {
+      const sp = res.splits || [], af = (d) => { let f = 1; for (const q of sp) if (q[0] > d) f *= q[1]; return f; };
+      const L = res.last;
+      if (tv[u.id] > 0 && last === marketLast) { const gap = (L[4] / af(L[0])) / tv[u.id] - 1; m.chk = Math.abs(gap) <= 0.005 ? 1 : 0; if (Math.abs(gap) > 0.2) { m.src = null; m.bad = 1; report.stale.push(u.id + ' scale mismatch vs second source ' + L[4] + ' vs ' + tv[u.id]); } else if (!m.chk) { m.gap = Math.round(gap * 1e4) / 1e4; report.diverge.push(u.id + ' ' + L[4] + ' vs ' + tv[u.id]); } }
+    }
+  }
+  if (!m.src) try { fs.unlinkSync(new URL(u.id + '.js', out)); } catch { }
+  meta.push(m);
+}
+fs.writeFileSync(new URL('./symbols.js', out), `window.EGX_SYMBOLS=${JSON.stringify(meta)};window.EGX_FETCHED=${JSON.stringify(new Date().toISOString())};window.EGX_MARKET_LAST=${JSON.stringify(marketLast)};`);
+fs.writeFileSync('/tmp/egx-report.json', JSON.stringify({ marketLast, CS, ...report }, null, 1));
+console.log('listed', U.length, 'with data', meta.filter(m => m.src).length, 'derived', meta.filter(m => m.src === 'hourly').length, 'no data', meta.filter(m => !m.src).length, 'stale', report.stale.length, 'marketLast', marketLast, 'clean', JSON.stringify(CS));
 
 // Precomputed screener rows (same numbers as the in-browser scan, split-adjusted) so the scanner tab opens instantly.
 try {
@@ -75,6 +134,6 @@ try {
     const y = daily.slice(-252), hi = Math.max(...y.map(b => b.high)), v30 = daily.slice(-30), turn = v30.reduce((a, b) => a + b.volume * b.close, 0) / v30.length;
     rows.push({ id: m.id, last, date: daily[n - 1].time, d1: ret(1), m1: ret(21), y1: ret(252), rsi: TA.rsi(c, 14)[n - 1], fromHi: last / hi - 1, turn, s50: TA.sma(c, 50)[n - 1], s200: TA.sma(c, 200)[n - 1] });
   }
-  fs.writeFileSync(new URL('./scan.js', out), `window.EGX_SCAN=${JSON.stringify({ adj: true, fetched: new Date().toISOString(), rows })};`);
+  fs.writeFileSync(new URL('./scan.js', out), `window.EGX_SCAN=${JSON.stringify({ adj: true, div: false, fetched: new Date().toISOString(), rows })};`);
   console.log('scan rows', rows.length);
 } catch (e) { console.log('scan build failed', e.message); }

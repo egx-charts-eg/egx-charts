@@ -40,15 +40,21 @@ const T = () => I18N[lang];
 const SYMS = window.EGX_SYMBOLS || [];
 const symMap = Object.fromEntries(SYMS.map(s => [s.id, s]));
 const splitsOf = (id) => (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].splits) || [];
+const divsOf = (id) => (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].divs) || [];
 const adjOn = () => store.get('adj', true);
-function adjFn(id) { const sp = adjOn() ? splitsOf(id) : []; if (!sp.length) return null; return (d) => { let f = 1; for (const q of sp) if (q[0] > d) f *= q[1]; return f; }; }
+const divOn = () => store.get('divadj', false);
+// Returns d -> [price divisor, volume multiplier]. Splits are on by default; dividend adjustment is optional (default: raw prices as traded).
+function adjFn(id) { const sp = adjOn() ? splitsOf(id) : [], dv = divOn() ? divsOf(id) : []; if (!sp.length && !dv.length) return null; return (d) => { let f = 1, g = 1; for (const q of sp) if (q[0] > d) f *= q[1]; for (const q of dv) if (q[0] > d) g *= q[1]; return [f / g, f]; }; }
+const adjRow = (r, t, af) => { const a = af ? af(t) : null, p = a ? a[0] : 1, v = a ? a[1] : 1; return p === 1 && v === 1 ? { time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] } : { time: r[0], open: r4(r[1] / p), high: r4(r[2] / p), low: r4(r[3] / p), close: r4(r[4] / p), volume: Math.round(r[5] * v) }; };
 const r4 = (x) => Math.round(x * 10000) / 10000;
 function loadDaily(id) {
   id = id.toUpperCase();
   if (!symMap[id]) return Promise.reject(new Error(T().unknown + ': ' + id));
-  if (window.EGX_DATA && window.EGX_DATA[id]) { const af = adjFn(id); return Promise.resolve(window.EGX_DATA[id].rows.map(r => { const f = af ? af(r[0]) : 1; return f === 1 ? { time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] } : { time: r[0], open: r4(r[1] / f), high: r4(r[2] / f), low: r4(r[3] / f), close: r4(r[4] / f), volume: Math.round(r[5] * f) }; })); }
+  if (window.EGX_DATA && window.EGX_DATA[id]) { const af = adjFn(id); return Promise.resolve(window.EGX_DATA[id].rows.map(r => adjRow(r, r[0], af))); }
+  if (!symMap[id].src) return Promise.reject(new Error(noReliable(id)));
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'data/' + id + '.js'; s.onload = () => res(loadDaily(id)); s.onerror = () => rej(new Error(T().noData + ': ' + id)); document.head.append(s); });
 }
+function noReliable(id) { const m = symMap[id] || {}, ar = lang === 'ar'; if (m.bad) return ar ? id + ': لا توجد بيانات موثوقة. سعر مصدر البيانات مختلف جدا عن السوق (غالبا خطأ في تجزئة السهم)، فتم إخفاء الشارت.' : id + ': no reliable data. The data source price is far from the market price (likely a split error), so the chart is hidden.'; if (m.stale !== undefined) return ar ? id + ': لا توجد بيانات موثوقة. ' + (m.stale ? 'آخر تداول مسجل في ' + m.stale + ' (قديم)' : 'مفيش أي تداول فعلي في البيانات') + '، فتم إخفاء الشارت بدل عرض أسعار قديمة.' : id + ': no reliable data. ' + (m.stale ? 'Last recorded trade was ' + m.stale + ' (old)' : 'No actual trades in the data') + ', so the chart is hidden instead of showing old prices.'; return T().noData + ': ' + id; }
 const days = (d) => typeof d === 'number' ? d / 86400 : Date.parse(d + 'T00:00:00Z') / 86400000;
 const INTRA_IDS = new Set(window.EGX_INTRA_IDS || []);
 const INTRA = ['15m', '1h', '2h', '3h', '4h'], isIntra = (tf) => INTRA.includes(tf);
@@ -58,7 +64,7 @@ function loadIntra(id) {
   if (window.EGX_INTRA[id]) return Promise.resolve(window.EGX_INTRA[id]);
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'data/i/' + id + '.js'; s.onload = () => res(window.EGX_INTRA[id]); s.onerror = () => rej(new Error(T().noIntra)); document.head.append(s); });
 }
-const toBars = (rows, af) => rows.map(r => { const f = af ? af(new Date(r[0] * 1000).toISOString().slice(0, 10)) : 1; return f === 1 ? { time: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] } : { time: r[0], open: r4(r[1] / f), high: r4(r[2] / f), low: r4(r[3] / f), close: r4(r[4] / f), volume: Math.round(r[5] * f) }; });
+const toBars = (rows, af) => rows.map(r => adjRow(r, new Date(r[0] * 1000).toISOString().slice(0, 10), af));
 function intraBars(tf) {
   if (!S.intra) return [];
   if (tf === '15m') return toBars(S.intra.m, adjFn(S.sym));
@@ -206,7 +212,7 @@ async function setSymbol(id, keepRange) {
   refreshBars(); if (!keepRange) applyRange(); loadDrawings(); selected = null; renderDrawList(); redrawSoon(); renderStats(); checkAlerts(false);
 }
 function setName() { const m = symMap[S.sym]; if (m) $('#symName').textContent = (BADDATA[S.sym] ? '⚠ ' : '') + (lang === 'ar' ? m.ar : m.en) + ' · ' + (lang === 'ar' ? m.secAr : m.secEn) + (m.src === 'hourly' ? (lang === 'ar' ? ' · (يومي مشتق من بيانات الساعة)' : ' · (daily derived from hourly)') : '') + (!m.src ? (lang === 'ar' ? ' · لا توجد بيانات أسعار' : ' · no price data') : ''); }
-const BADDATA = { ORAS: ['بيانات غير موثوقة: السعر مختلف عن مصادر أخرى (71.05 ثابت مقابل نحو 790 جنيه في مصادر أخرى) – لا تعتمد عليه', 'UNRELIABLE DATA: price conflicts with other sources (flat 71.05 vs about 790 EGP elsewhere). Do not rely on it'] };
+const BADDATA = {};
 function updStamp() {
   try {
     const m = symMap[S.sym], b = S.bars && S.bars.at(-1); if (!m || !b) return; const ar = lang === 'ar', intra = isIntra(S.tf);
@@ -217,10 +223,18 @@ function updStamp() {
     const adj = spl ? (adjOn() ? (ar ? ` · معدّل للتجزئة (${spl}${ai ? '، منها ' + ai + ' مستنتجة' : ''})` : ` · split-adjusted (${spl}${ai ? ', ' + ai + ' inferred' : ''})`) : (ar ? ' · أسعار خام بدون تعديل' : ' · raw prices, not adjusted')) : '';
     $('#dataNote').textContent = (ar ? 'آخر شمعة: ' : 'Last bar: ') + lt + ' · ' + kind + (f ? (ar ? ' · جُلبت ' : ' · fetched ') + f + ' UTC' : '') + adj;
     const bd = BADDATA[S.sym]; if (bd) $('#dataNote').textContent = '⚠ ' + bd[ar ? 0 : 1] + ' · ' + $('#dataNote').textContent; $('#dataNote').style.color = bd ? '#ef5350' : ''; $('#dataNote').style.fontWeight = bd ? 'bold' : '';
+    const warn = [], ml = window.EGX_MARKET_LAST;
+    if (m.last && ml && m.last < ml) warn.push(ar ? 'آخر تداول فعلي ' + m.last + ' (مفيش تداول بعده)' : 'Last actual trade ' + m.last + ' (no trades since)');
+    if (m.chk === 0) warn.push(ar ? 'آخر إغلاق يختلف عن مصدر ثانٍ بنسبة ' + (Math.abs(m.gap * 100)).toFixed(1) + '% ولم يتأكد، راجعه قبل الاعتماد' : 'Latest close differs from a second source by ' + (Math.abs(m.gap * 100)).toFixed(1) + '% and is unconfirmed. Check it before relying on it');
+    warn.push(ar ? 'الفتح للشموع القديمة من Yahoo وقد يساوي إغلاق اليوم السابق (القمة والقاع والإغلاق والحجم فعلية)' : 'Opens of older candles come from Yahoo and may equal the previous close (high, low, close, volume are actual)');
+    $('#dataNote').textContent += ' · ' + warn.join(' · '); if (warn.length > 1) { $('#dataNote').style.color = '#ffa726'; }
     $('#dataNote').title = $('#dataNote').textContent;
     let a = document.getElementById('adjBox');
     if (!a) { a = el('label', { class: 'chk', id: 'adjBox' }, el('input', { type: 'checkbox', id: 'adjChk' }), el('span', { id: 'adjTxt' })); document.getElementById('logScale').parentElement.after(a); document.getElementById('adjChk').onchange = (e) => { store.set('adj', e.target.checked); scrRows = null; setSymbol(S.sym, true); }; }
     document.getElementById('adjChk').checked = adjOn(); document.getElementById('adjTxt').textContent = ar ? 'تعديل التجزئة' : 'Split-adjust'; a.style.display = spl ? '' : 'none';
+    const dv = divsOf(S.sym).length; let db = document.getElementById('divBox');
+    if (!db) { db = el('label', { class: 'chk', id: 'divBox' }, el('input', { type: 'checkbox', id: 'divChk' }), el('span', { id: 'divTxt' })); document.getElementById('adjBox').after(db); document.getElementById('divChk').onchange = (e) => { store.set('divadj', e.target.checked); scrRows = null; setSymbol(S.sym, true); }; }
+    document.getElementById('divChk').checked = divOn(); document.getElementById('divTxt').textContent = ar ? 'تعديل التوزيعات (اختياري)' : 'Dividend-adjust (optional)'; db.style.display = dv ? '' : 'none'; db.title = ar ? 'الافتراضي: أسعار السوق الفعلية بدون تعديل. التفعيل يطابق TradingView.' : 'Default: actual traded prices. Turn on to match TradingView adjusted history.';
   } catch (e) { }
 }
 function refreshBars() {
@@ -322,7 +336,7 @@ function ensureScrSearch() {
   $('#scrBox').before(i);
 }
 ensureScrSearch();
-document.querySelector('[data-tab="scr"]').addEventListener('click', () => { if (scrRows) return; if (window.EGX_SCAN && window.EGX_SCAN.adj === adjOn()) { scrRows = window.EGX_SCAN.rows.filter(r => symMap[r.id]); renderScreener(); } else setTimeout(() => $('#scrRun').click(), 50); });
+document.querySelector('[data-tab="scr"]').addEventListener('click', () => { if (scrRows) return; if (window.EGX_SCAN && window.EGX_SCAN.adj === adjOn() && !!window.EGX_SCAN.div === divOn()) { scrRows = window.EGX_SCAN.rows.filter(r => symMap[r.id]); renderScreener(); } else setTimeout(() => $('#scrRun').click(), 50); });
 function renderScreener() {
   ensureScrSearch();
   const box = $('#scrBox'); box.innerHTML = ''; const sel = el('select', {}, T().filters.map((f, i) => el('option', { value: i }, f))); sel.value = scrFilter; sel.onchange = (e) => { scrFilter = +e.target.value; renderScreener(); };
