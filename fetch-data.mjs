@@ -66,7 +66,8 @@ async function daily(tk) {
   const j = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${tk}.CA?period1=1230768000&period2=${Math.floor(Date.now() / 1000) + 86400}&interval=1d&events=div%2Csplits`);
   const x = j?.chart?.result?.[0]; if (!x?.timestamp || x.timestamp.length < 30) return null; const q = x.indicators.quote[0], m = new Map();
   x.timestamp.forEach((t, i) => { if (q.close[i] == null || q.open[i] == null) return; const d = cairoDate(t); m.set(d, [d, r3(q.open[i]), r3(q.high[i]), r3(q.low[i]), r3(q.close[i]), q.volume[i] || 0]); });
-  const rr = clean([...m.values()].sort((a, b) => a[0] < b[0] ? -1 : 1), CS); const sp = fitSplits(rr, getSplits(x)); return { rows: rr, src: 'daily', splits: sp, divs: divFactors(x, rr, sp) };
+  const U1 = U.find(z => z.id === tk), sk = U1 && U1.skip; // known-bad window (e.g. rights-issue adjusted bars from the data source): dropped, shown as a gap
+  const rr = clean([...m.values()].filter(r => !(sk && r[0] >= sk[0] && r[0] <= sk[1])).sort((a, b) => a[0] < b[0] ? -1 : 1), CS); const sp = fitSplits(rr, getSplits(x)); return { rows: rr, src: 'daily', splits: sp, divs: divFactors(x, rr, sp) };
 }
 async function derived(isin) {
   const j = await getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${isin}?range=730d&interval=60m&events=div%2Csplits`);
