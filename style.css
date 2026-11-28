@@ -130,3 +130,12 @@ body.drawing .plg{pointer-events:none}
 #srcStrip .sc.warn{color:#ffa726;border-color:#ffa726}
 #srcStrip .sc.bad{color:#ef5350;border-color:#ef5350;font-weight:bold}
 @media(max-width:800px){#srcStrip{overflow-x:auto;flex-wrap:nowrap}}
+
+#dataNote{display:none!important}
+#srcStrip{display:block;padding:3px 8px}
+#srcStrip .srow{display:flex;gap:6px;align-items:center}
+#srcStrip .sc.main{font-size:12px;font-weight:bold;padding:2px 10px}
+#srcStrip .sinfo{background:none;border:1px solid #3a3f4b;color:var(--mut);border-radius:50%;width:22px;height:22px;cursor:pointer;padding:0;line-height:1}
+#srcStrip .sdet{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+#srcStrip .sdet[hidden]{display:none}
+@media(max-width:800px){#srcStrip{overflow-x:visible;flex-wrap:wrap}}

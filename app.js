@@ -238,7 +238,15 @@ function renderStrip(m, b, intra, warn) {
     if (m.src === 'hourly') chips.push(chip(ar ? 'حجم التداول تقريبي وأقل من الفعلي' : 'Volume approximate, understated', 'warn', ar ? 'اليوم مبني من شموع الساعة' : 'Daily bars built from hourly bars'));
     chips.push(chip(ar ? 'الفتح للشموع القديمة غير موثوق' : 'Older opens unreliable', 'warn', ar ? 'يساوي إغلاق اليوم السابق في كثير من الشموع' : 'Often equals the previous close'));
   }
-  box.innerHTML = ''; box.append(...chips);
+  const intraNow = intra; let badge;
+  if (m.old) badge = chip(ar ? '⚠ سهم غير نشط' : '⚠ Inactive stock', 'bad', ar ? 'لا تداول حديث' : 'No recent trades');
+  else if (!intraNow && m.chk === 1) badge = chip(ar ? '✔ مطابق لمصدر ثانٍ' : '✔ Verified vs 2nd source', 'ok', ar ? 'إغلاق ' + m.last + ' يطابق مصدراً ثانياً' : 'Close of ' + m.last + ' matches a second source');
+  else badge = chip(ar ? '⚠ غير مؤكد، راجع السمسرة' : '⚠ Unverified, check your broker', 'warn', ar ? 'لم يتأكد الإغلاق من مصدر ثانٍ' : 'Close not confirmed by a second source');
+  badge.classList.add('main');
+  const info = el('button', { class: 'sinfo', type: 'button', title: ar ? 'تفاصيل البيانات' : 'Data details' }, 'ⓘ');
+  const det = el('div', { class: 'sdet' }, ...chips); det.hidden = !window.__stripOpen;
+  info.onclick = () => { window.__stripOpen = !window.__stripOpen; det.hidden = !window.__stripOpen; };
+  box.innerHTML = ''; box.append(el('div', { class: 'srow' }, badge, info), det);
 }
 function updStamp() {
   try {
