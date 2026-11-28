@@ -133,7 +133,8 @@ try {
     const n = daily.length; if (n <= 60) continue;
     const c = daily.map(b => b.close), last = c[n - 1], ret = (k) => n > k ? last / c[n - 1 - k] - 1 : null;
     const y = daily.slice(-252), hi = Math.max(...y.map(b => b.high)), v30 = daily.slice(-30), turn = v30.reduce((a, b) => a + b.volume * b.close, 0) / v30.length;
-    rows.push({ id: m.id, last, date: daily[n - 1].time, d1: ret(1), m1: ret(21), y1: ret(252), rsi: TA.rsi(c, 14)[n - 1], fromHi: last / hi - 1, turn, s50: TA.sma(c, 50)[n - 1], s200: TA.sma(c, 200)[n - 1] });
+    const unc = sp.some(q => q[2] === 'auto' && q[0] >= daily[Math.max(0, n - 252)].time);
+    rows.push({ id: m.id, last, date: daily[n - 1].time, unc: unc ? 1 : 0, unv: m.chk === 0 ? 1 : 0, d1: ret(1), m1: ret(21), y1: ret(252), rsi: TA.rsi(c, 14)[n - 1], fromHi: last / hi - 1, turn: m.src === 'hourly' ? null : turn, s50: TA.sma(c, 50)[n - 1], s200: TA.sma(c, 200)[n - 1] });
   }
   fs.writeFileSync(new URL('./scan.js', out), `window.EGX_SCAN=${JSON.stringify({ adj: true, div: false, fetched: new Date().toISOString(), rows })};`);
   console.log('scan rows', rows.length);

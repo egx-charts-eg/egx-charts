@@ -123,3 +123,10 @@ body.drawing .plg{pointer-events:none}
 .favx{background:none;border:0;color:var(--mut);font-size:18px;cursor:pointer;padding:0 4px}.favx.on{color:#f5b83d}
 #tab-fav{padding:8px}#tab-fav table{width:100%;font-size:12px}
 .sym-box{display:flex;align-items:center}
+
+#srcStrip{display:flex;flex-wrap:wrap;gap:4px;padding:3px 8px;font-size:11px;background:var(--bg)}
+#srcStrip .sc{padding:1px 7px;border-radius:9px;border:1px solid #3a3f4b;color:var(--mut);white-space:nowrap}
+#srcStrip .sc.ok{color:#26a69a;border-color:#26a69a}
+#srcStrip .sc.warn{color:#ffa726;border-color:#ffa726}
+#srcStrip .sc.bad{color:#ef5350;border-color:#ef5350;font-weight:bold}
+@media(max-width:800px){#srcStrip{overflow-x:auto;flex-wrap:nowrap}}

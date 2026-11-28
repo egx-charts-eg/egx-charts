@@ -39,9 +39,11 @@ const T = () => I18N[lang];
 /* ---------------- data ---------------- */
 const SYMS = window.EGX_SYMBOLS || [];
 const symMap = Object.fromEntries(SYMS.map(s => [s.id, s]));
-const splitsOf = (id) => { const sp = (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].splits) || []; return symMap[id] && symMap[id].old ? sp.filter(q => q[2] !== 'auto') : sp; }; // inferred splits are not trusted on inactive stocks
+const splitsOf = (id) => { const sp = (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].splits) || []; return (symMap[id] && symMap[id].old) || !autoOn() ? sp.filter(q => q[2] !== 'auto') : sp; };
+const allSplitsOf = (id) => (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].splits) || []; // inferred splits are not trusted on inactive stocks
 const divsOf = (id) => (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].divs) || [];
-const adjOn = () => store.get('adj', true);
+const adjOn = () => store.get('adj', false);
+const autoOn = () => store.get('autospl', false);
 const divOn = () => store.get('divadj', false);
 // Returns d -> [price divisor, volume multiplier]. Splits are on by default; dividend adjustment is optional (default: raw prices as traded).
 function adjFn(id) { const sp = adjOn() ? splitsOf(id) : [], dv = divOn() ? divsOf(id) : []; if (!sp.length && !dv.length) return null; return (d) => { let f = 1, g = 1; for (const q of sp) if (q[0] > d) f *= q[1]; for (const q of dv) if (q[0] > d) g *= q[1]; return [f / g, f]; }; }
@@ -186,7 +188,7 @@ function updateIndValues(time) {
 /* ---------------- legend / crosshair ---------------- */
 function legendFor(i) {
   const b = S.bars[i]; if (!b) return; const p = S.bars[i - 1], c = p ? b.close / p.close - 1 : null;
-  $('#legend').innerHTML = `<b>${S.sym}</b> ${tlabel(b.time)} &nbsp; O <b>${fmt(b.open)}</b> H <b>${fmt(b.high)}</b> L <b>${fmt(b.low)}</b> C <b class="${cls(c)}">${fmt(b.close)}</b> <span class="${cls(c)}">${pct(c)}</span> &nbsp; Vol <b>${fmt(b.volume, 0)}</b>`;
+  $('#legend').innerHTML = `<b>${S.sym}</b> ${tlabel(b.time)} &nbsp; O <b${(!isIntra(S.tf) && p && i < S.bars.length - 1 && Math.abs(b.open - p.close) < 1e-6) ? ' style="opacity:.55" title="' + L2('الفتح غير موثوق للشموع القديمة (يساوي إغلاق اليوم السابق في مصدر البيانات)', 'Open not reliable on older bars (equals previous close in the data source)') + '"' : ''}>${fmt(b.open)}${(!isIntra(S.tf) && p && i < S.bars.length - 1 && Math.abs(b.open - p.close) < 1e-6) ? '*' : ''}</b> H <b>${fmt(b.high)}</b> L <b>${fmt(b.low)}</b> C <b class="${cls(c)}">${fmt(b.close)}</b> <span class="${cls(c)}">${pct(c)}</span> &nbsp; Vol <b>${fmt(b.volume, 0)}</b>`;
 }
 chart.subscribeCrosshairMove((p) => { const t = p.time; const i = t != null ? S.idxByTime[t] : S.bars.length - 1; if (i != null) { legendFor(i); updateIndValues(t ?? S.bars.at(-1).time); } });
 
@@ -213,13 +215,38 @@ async function setSymbol(id, keepRange) {
 }
 function setName() { const m = symMap[S.sym]; if (m) $('#symName').textContent = (BADDATA[S.sym] ? '⚠ ' : '') + (lang === 'ar' ? m.ar : m.en) + ' · ' + (lang === 'ar' ? m.secAr : m.secEn) + (m.src === 'hourly' ? (lang === 'ar' ? ' · (يومي مشتق من بيانات الساعة)' : ' · (daily derived from hourly)') : '') + (!m.src ? (lang === 'ar' ? ' · لا توجد بيانات أسعار' : ' · no price data') : ''); }
 const BADDATA = {};
+
+function renderStrip(m, b, intra, warn) {
+  const box = document.getElementById('srcStrip'); if (!box) return; const ar = lang === 'ar', ml = window.EGX_MARKET_LAST;
+  const chip = (txt, c, tip) => { const s = el('span', { class: 'sc ' + (c || '') }, txt); if (tip) s.title = tip; return s; };
+  const lt = typeof b.time === 'number' ? new Date(b.time * 1000).toISOString().slice(0, 16).replace('T', ' ') + (ar ? ' القاهرة' : ' Cairo') : b.time;
+  const f = (window.EGX_FETCHED || '').slice(0, 16).replace('T', ' ');
+  const chips = [];
+  chips.push(chip((ar ? 'المصدر: Yahoo Finance (غير رسمي)' : 'Source: Yahoo Finance (unofficial)'), '', ar ? 'ليس مصدر البورصة الرسمي. قد تختلف الأرقام عن شاشة الوسيط' : 'Not the official EGX feed. Numbers can differ from your broker screen'));
+  chips.push(chip((ar ? 'آخر شمعة: ' : 'Last bar: ') + lt + (f ? (ar ? ' · تحديث ' : ' · updated ') + f + ' UTC' : ''), ''));
+  chips.push(chip(intra ? (ar ? 'متأخر 15 دقيقة أو أكثر' : 'Delayed 15+ min') : (ar ? 'إغلاق يومي، متأخر' : 'End-of-day, delayed'), ''));
+  const sp = adjOn() ? splitsOf(S.sym).length : 0, dv = divOn() && divsOf(S.sym).length;
+  const basis = (!sp && !dv) ? (ar ? 'أسعار فعلية (خام)' : 'RAW, as traded') : (ar ? 'معدّلة: ' : 'ADJUSTED: ') + [sp ? (ar ? 'تجزئة' : 'splits') : '', dv ? (ar ? 'توزيعات' : 'dividends') : ''].filter(Boolean).join(' + ');
+  chips.push(chip(basis, (!sp && !dv) ? 'ok' : 'warn', ar ? 'الأسعار الحالية والأخيرة دائما خام. التعديل يغيّر التاريخ القديم فقط' : 'The latest prices are always raw. Adjustment only changes older history'));
+  const ac = allSplitsOf(S.sym).filter(q => q[2] === 'auto');
+  if (ac.length) chips.push(chip((ar ? 'تجزئات غير مؤكدة: ' : 'Unconfirmed splits: ') + ac.map(q => q[0] + ' x' + Math.round(q[1] * 1000) / 1000).join(', ') + (adjOn() && autoOn() ? (ar ? ' (مطبّقة)' : ' (applied)') : (ar ? ' (غير مطبّقة)' : ' (not applied)')), 'warn'));
+  if (!intra) {
+    if (m.old) chip && chips.push(chip(ar ? 'غير نشط: لا تداول حديث' : 'Inactive: no recent trades', 'bad'));
+    else if (m.chk === 1) chips.push(chip((ar ? 'تطابق مع مصدر ثانٍ في ' : 'Close matches 2nd source on ') + m.last, 'ok'));
+    else if (m.chk === 0) chips.push(chip((ar ? 'غير مؤكد: يختلف ' : 'UNVERIFIED: differs ') + (Math.abs(m.gap * 100)).toFixed(1) + '%' + (ar ? ' عن مصدر ثانٍ' : ' from a 2nd source'), 'bad'));
+    else chips.push(chip(ar ? 'غير مُتحقَّق منه مع مصدر ثانٍ' : 'Not checked against a 2nd source', 'warn'));
+    if (m.src === 'hourly') chips.push(chip(ar ? 'حجم التداول تقريبي وأقل من الفعلي' : 'Volume approximate, understated', 'warn', ar ? 'اليوم مبني من شموع الساعة' : 'Daily bars built from hourly bars'));
+    chips.push(chip(ar ? 'الفتح للشموع القديمة غير موثوق' : 'Older opens unreliable', 'warn', ar ? 'يساوي إغلاق اليوم السابق في كثير من الشموع' : 'Often equals the previous close'));
+  }
+  box.innerHTML = ''; box.append(...chips);
+}
 function updStamp() {
   try {
     const m = symMap[S.sym], b = S.bars && S.bars.at(-1); if (!m || !b) return; const ar = lang === 'ar', intra = isIntra(S.tf);
     const lt = typeof b.time === 'number' ? new Date(b.time * 1000).toISOString().slice(0, 16).replace('T', ' ') + (ar ? ' (توقيت القاهرة)' : ' Cairo') : b.time;
     const f = (window.EGX_FETCHED || '').slice(0, 16).replace('T', ' ');
     const kind = intra ? (ar ? 'بيانات داخل اليوم متأخرة (15 دقيقة أو أكثر) وليست لحظية' : 'Intraday data, delayed (15 min or more), not real-time') : m.src === 'hourly' ? (ar ? 'إغلاق يومي مشتق من شموع الساعة، وليس لحظياً' : 'End-of-day closes built from hourly bars, not real-time') : (ar ? 'إغلاق يومي (EOD)، وليس لحظياً' : 'End-of-day close, not real-time');
-    const spl = splitsOf(S.sym).length, ai = splitsOf(S.sym).filter(q => q[2] === 'auto').length;
+    const spl = allSplitsOf(S.sym).length, ai = allSplitsOf(S.sym).filter(q => q[2] === 'auto').length;
     const adj = spl ? (adjOn() ? (ar ? ` · معدّل للتجزئة (${spl}${ai ? '، منها ' + ai + ' مستنتجة' : ''})` : ` · split-adjusted (${spl}${ai ? ', ' + ai + ' inferred' : ''})`) : (ar ? ' · أسعار خام بدون تعديل' : ' · raw prices, not adjusted')) : '';
     $('#dataNote').textContent = (ar ? 'آخر شمعة: ' : 'Last bar: ') + lt + ' · ' + kind + (f ? (ar ? ' · جُلبت ' : ' · fetched ') + f + ' UTC' : '') + adj;
     const bd = BADDATA[S.sym]; if (bd) $('#dataNote').textContent = '⚠ ' + bd[ar ? 0 : 1] + ' · ' + $('#dataNote').textContent; $('#dataNote').style.color = bd ? '#ef5350' : ''; $('#dataNote').style.fontWeight = bd ? 'bold' : '';
@@ -230,9 +257,13 @@ function updStamp() {
     warn.push(ar ? 'الفتح للشموع القديمة من Yahoo وقد يساوي إغلاق اليوم السابق (القمة والقاع والإغلاق والحجم فعلية)' : 'Opens of older candles come from Yahoo and may equal the previous close (high, low, close, volume are actual)');
     $('#dataNote').textContent += ' · ' + warn.join(' · '); if (warn.length > 1) { $('#dataNote').style.color = m.old ? '#ef5350' : '#ffa726'; }
     $('#dataNote').title = $('#dataNote').textContent;
+    renderStrip(m, b, intra, warn);
     let a = document.getElementById('adjBox');
     if (!a) { a = el('label', { class: 'chk', id: 'adjBox' }, el('input', { type: 'checkbox', id: 'adjChk' }), el('span', { id: 'adjTxt' })); document.getElementById('logScale').parentElement.after(a); document.getElementById('adjChk').onchange = (e) => { store.set('adj', e.target.checked); scrRows = null; setSymbol(S.sym, true); }; }
-    document.getElementById('adjChk').checked = adjOn(); document.getElementById('adjTxt').textContent = ar ? 'تعديل التجزئة' : 'Split-adjust'; a.style.display = spl ? '' : 'none';
+    document.getElementById('adjChk').checked = adjOn(); document.getElementById('adjTxt').textContent = ar ? 'تعديل التجزئة' : 'Split-adjust'; a.style.display = allSplitsOf(S.sym).length ? '' : 'none';
+    const nauto = allSplitsOf(S.sym).filter(q => q[2] === 'auto').length; let ab = document.getElementById('autoBox');
+    if (!ab) { ab = el('label', { class: 'chk', id: 'autoBox' }, el('input', { type: 'checkbox', id: 'autoChk' }), el('span', { id: 'autoTxt' })); document.getElementById('adjBox').after(ab); document.getElementById('autoChk').onchange = (e) => { store.set('autospl', e.target.checked); setSymbol(S.sym, true); }; }
+    document.getElementById('autoChk').checked = autoOn(); document.getElementById('autoTxt').textContent = ar ? 'تجزئات غير مؤكدة' : 'Unconfirmed splits'; ab.style.display = nauto && adjOn() ? '' : 'none'; ab.title = ar ? 'تجزئات استنتجتها من قفزات السعر وليست من مصدر مؤكد' : 'Splits inferred from price jumps, not confirmed by the data source';
     const dv = divsOf(S.sym).length; let db = document.getElementById('divBox');
     if (!db) { db = el('label', { class: 'chk', id: 'divBox' }, el('input', { type: 'checkbox', id: 'divChk' }), el('span', { id: 'divTxt' })); document.getElementById('adjBox').after(db); document.getElementById('divChk').onchange = (e) => { store.set('divadj', e.target.checked); scrRows = null; setSymbol(S.sym, true); }; }
     document.getElementById('divChk').checked = divOn(); document.getElementById('divTxt').textContent = ar ? 'تعديل التوزيعات (اختياري)' : 'Dividend-adjust (optional)'; db.style.display = dv ? '' : 'none'; db.title = ar ? 'الافتراضي: أسعار السوق الفعلية بدون تعديل. التفعيل يطابق TradingView.' : 'Default: actual traded prices. Turn on to match TradingView adjusted history.';
@@ -337,7 +368,7 @@ function ensureScrSearch() {
   $('#scrBox').before(i);
 }
 ensureScrSearch();
-document.querySelector('[data-tab="scr"]').addEventListener('click', () => { if (scrRows) return; if (window.EGX_SCAN && window.EGX_SCAN.adj === adjOn() && !!window.EGX_SCAN.div === divOn()) { scrRows = window.EGX_SCAN.rows.filter(r => symMap[r.id]); renderScreener(); } else setTimeout(() => $('#scrRun').click(), 50); });
+document.querySelector('[data-tab="scr"]').addEventListener('click', () => { if (scrRows) return; if (window.EGX_SCAN && !!window.EGX_SCAN.div === divOn()) { scrRows = window.EGX_SCAN.rows.filter(r => symMap[r.id]); renderScreener(); } else setTimeout(() => $('#scrRun').click(), 50); });
 function renderScreener() {
   ensureScrSearch();
   const box = $('#scrBox'); box.innerHTML = ''; const sel = el('select', {}, T().filters.map((f, i) => el('option', { value: i }, f))); sel.value = scrFilter; sel.onchange = (e) => { scrFilter = +e.target.value; renderScreener(); };
@@ -346,9 +377,9 @@ function renderScreener() {
   const q = scrQ(), nameOf = (r) => { const m = symMap[r.id] || {}; return (r.id + ' ' + (m.en || '') + ' ' + (m.ar || '')).toLowerCase(); };
   const data = scrRows.filter(F).filter(r => !q || nameOf(r).includes(q)).sort((a, b) => { const x = a[scrSort.k] ?? -Infinity, y = b[scrSort.k] ?? -Infinity; return (x > y ? 1 : x < y ? -1 : 0) * scrSort.d; });
   const th = [el('th', {}, '★')].concat(cols.map(([k, n]) => el('th', { onclick: () => { scrSort = { k, d: scrSort.k === k ? -scrSort.d : -1 }; renderScreener(); } }, n)));
-  const fm = { last: v => fmt(v), d1: pct, m1: pct, y1: pct, rsi: v => fmt(v, 0), fromHi: pct, turn: v => fmt(v / 1e6, 1) + 'M' };
-  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); hidePanel(); } }, [el('td', {}, el('button', { class: 'favx' + (favs().includes(r.id) ? ' on' : ''), onclick: (e) => { e.stopPropagation(); toggleFav(r.id); } }, favs().includes(r.id) ? '★' : '☆'))].concat(cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? el('span', {}, r.id, el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((symMap[r.id] || {})[lang === 'ar' ? 'ar' : 'en'] || '').slice(0, 26))) : fm[k](r[k]))))));
-  box.append(sel, el('span', { class: 'hint', style: 'margin:0 8px' }, data.length + ' / ' + scrRows.length), el('table', {}, el('thead', {}, el('tr', {}, th)), el('tbody', {}, trs)));
+  const fm = { last: v => fmt(v), d1: pct, m1: pct, y1: pct, rsi: v => fmt(v, 0), fromHi: pct, turn: v => v == null ? '–' : fmt(v / 1e6, 1) + 'M' };
+  const trs = data.map(r => el('tr', { class: 'clk', onclick: () => { setSymbol(r.id); hidePanel(); } }, [el('td', {}, el('button', { class: 'favx' + (favs().includes(r.id) ? ' on' : ''), onclick: (e) => { e.stopPropagation(); toggleFav(r.id); } }, favs().includes(r.id) ? '★' : '☆'))].concat(cols.map(([k]) => el('td', { class: k === 'id' ? '' : 'n ' + (['d1', 'm1', 'y1', 'fromHi'].includes(k) ? cls(r[k]) : '') }, k === 'id' ? el('span', {}, r.id + (r.unc ? ' ⚠' : ''), el('br'), el('small', { style: 'color:var(--mut);font-size:10px' }, ((symMap[r.id] || {})[lang === 'ar' ? 'ar' : 'en'] || '').slice(0, 26))) : k === 'last' ? el('span', {}, fm.last(r[k]) + (r.unv ? ' ⚠' : ''), el('br'), el('small', { style: 'color:var(--mut);font-size:10px', title: r.unv ? L2('الإغلاق غير مؤكد من مصدر ثانٍ', 'Close unconfirmed by a 2nd source') : '' }, r.date || '')) : fm[k](r[k]))))));
+  box.append(sel, el('span', { class: 'hint', style: 'margin:0 8px' }, data.length + ' / ' + scrRows.length), el('div', { class: 'hint' }, L2('السعر = آخر إغلاق خام مع تاريخه. العوائد وRSI والمتوسطات محسوبة على أسعار معدّلة للتجزئة. ⚠ بجانب الرمز: تجزئة غير مؤكدة في آخر سنة. ⚠ بجانب السعر: إغلاق غير مؤكد. العملة: جنيه، والبيانات من Yahoo (غير رسمي)', 'Price = latest raw close with its date. Returns, RSI and SMAs use split-adjusted history. ⚠ by symbol: unconfirmed split in the last year. ⚠ by price: close unconfirmed by a 2nd source. Data: Yahoo Finance (unofficial)')), el('table', {}, el('thead', {}, el('tr', {}, th)), el('tbody', {}, trs)));
 }
 
 /* ---------------- drawings ---------------- */
