@@ -243,10 +243,7 @@ function renderStrip(m, b, intra, warn) {
   else if (!intraNow && m.chk === 1) badge = chip(ar ? '✔ مطابق لمصدر ثانٍ' : '✔ Verified vs 2nd source', 'ok', ar ? 'إغلاق ' + m.last + ' يطابق مصدراً ثانياً' : 'Close of ' + m.last + ' matches a second source');
   else badge = chip(ar ? '⚠ غير مؤكد، راجع السمسرة' : '⚠ Unverified, check your broker', 'warn', ar ? 'لم يتأكد الإغلاق من مصدر ثانٍ' : 'Close not confirmed by a second source');
   badge.classList.add('main');
-  const info = el('button', { class: 'sinfo', type: 'button', title: ar ? 'تفاصيل البيانات' : 'Data details' }, 'ⓘ');
-  const det = el('div', { class: 'sdet' }, ...chips); det.hidden = !window.__stripOpen;
-  info.onclick = () => { window.__stripOpen = !window.__stripOpen; det.hidden = !window.__stripOpen; };
-  box.innerHTML = ''; box.append(el('div', { class: 'srow' }, badge, info), det);
+  box.innerHTML = ''; box.append(el('div', { class: 'srow' }, badge));
 }
 function updStamp() {
   try {
