@@ -98,13 +98,14 @@ const dayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
 // Second-source check against TradingView's public scanner (verification only, nothing from it is stored except a pass/fail flag and the percent gap).
 let tv = {};
 try { const j = await (await fetch('https://scanner.tradingview.com/egypt/scan', { method: 'POST', headers: { 'content-type': 'application/json', 'User-Agent': 'Mozilla/5.0' }, body: JSON.stringify({ columns: ['name', 'close'], range: [0, 1000] }) })).json(); for (const d of j.data) tv[d.d[0]] = d.d[1]; } catch (e) { console.log('tv check unavailable', e.message); }
-const report = { stale: [], diverge: [] };
+const report = { stale: [], diverge: [], old: [] };
 for (const u of U) {
   const res = results.get(u.id); const m = { id: u.id, en: u.en, ar: u.ar, secEn: u.secEn, secAr: u.secAr, src: res ? res.src : null };
   if (res && !res.keep) {
     const last = lastOf(res); m.last = last;
     if (!last) { m.src = null; m.stale = ''; report.stale.push(u.id + ' no real trades'); }
-    else if (marketLast && dayDiff(last, marketLast) > STALE_DAYS) { m.src = null; m.stale = last; report.stale.push(u.id + ' ' + last); }
+    else if (marketLast && dayDiff(last, marketLast) > STALE_DAYS && !(tv[u.id] > 0 && Math.abs(res.last[4] / tv[u.id] - 1) <= 0.005)) { m.src = null; m.stale = last; report.stale.push(u.id + ' ' + last + ' last trade ' + res.last[4] + ' vs second source ' + tv[u.id]); }
+    else if (marketLast && dayDiff(last, marketLast) > STALE_DAYS) { m.old = 1; m.chk = 1; report.old.push(u.id + ' last trade ' + last + ' at ' + res.last[4] + ' (second source shows same flat price)'); }
     else {
       const sp = res.splits || [], af = (d) => { let f = 1; for (const q of sp) if (q[0] > d) f *= q[1]; return f; };
       const L = res.last;
@@ -124,7 +125,7 @@ try {
   const tctx = {}; tctx.window = tctx; vm.runInNewContext(fs.readFileSync(new URL('../ta.js', import.meta.url), 'utf8'), tctx); const TA = tctx.TA;
   const r4 = (x) => Math.round(x * 10000) / 10000, rows = [];
   for (const m of meta) {
-    if (!m.src) continue;
+    if (!m.src || m.old) continue;
     const dctx = { window: {} }; dctx.window.EGX_DATA = {}; vm.runInNewContext(fs.readFileSync(new URL(m.id + '.js', out), 'utf8'), { window: dctx.window });
     const D = dctx.window.EGX_DATA[m.id]; if (!D) continue; const sp = D.splits || [];
     const af = (d) => { let f = 1; for (const q of sp) if (q[0] > d) f *= q[1]; return f; };

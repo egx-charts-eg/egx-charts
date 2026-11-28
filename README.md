@@ -25,6 +25,7 @@ Then refresh the page. Add stocks by editing `tools/symbols.json` (EGX code, Eng
 - Prices are Yahoo Finance daily bars. Default view: prices as traded (split-adjusted only). Optional toggle "Dividend-adjust" matches TradingView's adjusted history (factors verified against Yahoo's adjusted close).
 - The refresh drops no-trade bars (volume 0), the corrupt 2011 closure window, and repairs inconsistent OHLC (open outside the day's range).
 - Opens of older candles from Yahoo may equal the previous close. High, low, close and volume are actual. The newest bar's open is real.
+- Inactive stocks: if the last real trade is older than 14 days but the second source shows the same flat price, the chart stays with a red "no trades since" warning (only actual trades are candles). ORAS and VLMRA use their Yahoo ISIN hourly series (~3 years); VLMRA's earlier ISIN was the wrong share line.
 - A stock with no real trade in the 14 days before the latest market session, no trades at all, or a last price far from a second source gets no chart (shown as "no reliable data"), never old prices.
 - The latest close is compared with TradingView's public scanner as a second source. A gap over 0.5% shows a warning on that stock.
 - Not live, not investment advice. Check the price on your broker screen before trading.

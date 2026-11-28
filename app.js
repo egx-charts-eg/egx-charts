@@ -39,7 +39,7 @@ const T = () => I18N[lang];
 /* ---------------- data ---------------- */
 const SYMS = window.EGX_SYMBOLS || [];
 const symMap = Object.fromEntries(SYMS.map(s => [s.id, s]));
-const splitsOf = (id) => (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].splits) || [];
+const splitsOf = (id) => { const sp = (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].splits) || []; return symMap[id] && symMap[id].old ? sp.filter(q => q[2] !== 'auto') : sp; }; // inferred splits are not trusted on inactive stocks
 const divsOf = (id) => (window.EGX_DATA && window.EGX_DATA[id] && window.EGX_DATA[id].divs) || [];
 const adjOn = () => store.get('adj', true);
 const divOn = () => store.get('divadj', false);
@@ -224,10 +224,11 @@ function updStamp() {
     $('#dataNote').textContent = (ar ? 'آخر شمعة: ' : 'Last bar: ') + lt + ' · ' + kind + (f ? (ar ? ' · جُلبت ' : ' · fetched ') + f + ' UTC' : '') + adj;
     const bd = BADDATA[S.sym]; if (bd) $('#dataNote').textContent = '⚠ ' + bd[ar ? 0 : 1] + ' · ' + $('#dataNote').textContent; $('#dataNote').style.color = bd ? '#ef5350' : ''; $('#dataNote').style.fontWeight = bd ? 'bold' : '';
     const warn = [], ml = window.EGX_MARKET_LAST;
-    if (m.last && ml && m.last < ml) warn.push(ar ? 'آخر تداول فعلي ' + m.last + ' (مفيش تداول بعده)' : 'Last actual trade ' + m.last + ' (no trades since)');
+    if (m.old) warn.push(ar ? '⚠ سهم متوقف أو غير نشط: آخر تداول فعلي ' + m.last + ' بنفس السعر المعروض، ولا تداولات بعده (TradingView يعرض نفس السعر ثابت وحجم صفر). الشموع هي التداولات الفعلية فقط' : '⚠ Suspended or inactive stock: last actual trade ' + m.last + ' at the price shown, no trades since (TradingView shows the same flat price with zero volume). Candles are actual trades only');
+    else if (m.last && ml && m.last < ml) warn.push(ar ? 'آخر تداول فعلي ' + m.last + ' (مفيش تداول بعده)' : 'Last actual trade ' + m.last + ' (no trades since)');
     if (m.chk === 0) warn.push(ar ? 'آخر إغلاق يختلف عن مصدر ثانٍ بنسبة ' + (Math.abs(m.gap * 100)).toFixed(1) + '% ولم يتأكد، راجعه قبل الاعتماد' : 'Latest close differs from a second source by ' + (Math.abs(m.gap * 100)).toFixed(1) + '% and is unconfirmed. Check it before relying on it');
     warn.push(ar ? 'الفتح للشموع القديمة من Yahoo وقد يساوي إغلاق اليوم السابق (القمة والقاع والإغلاق والحجم فعلية)' : 'Opens of older candles come from Yahoo and may equal the previous close (high, low, close, volume are actual)');
-    $('#dataNote').textContent += ' · ' + warn.join(' · '); if (warn.length > 1) { $('#dataNote').style.color = '#ffa726'; }
+    $('#dataNote').textContent += ' · ' + warn.join(' · '); if (warn.length > 1) { $('#dataNote').style.color = m.old ? '#ef5350' : '#ffa726'; }
     $('#dataNote').title = $('#dataNote').textContent;
     let a = document.getElementById('adjBox');
     if (!a) { a = el('label', { class: 'chk', id: 'adjBox' }, el('input', { type: 'checkbox', id: 'adjChk' }), el('span', { id: 'adjTxt' })); document.getElementById('logScale').parentElement.after(a); document.getElementById('adjChk').onchange = (e) => { store.set('adj', e.target.checked); scrRows = null; setSymbol(S.sym, true); }; }
